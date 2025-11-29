@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <button onclick="testButton()">Test Button</button>
+    <button onclick="checkFunction()">Check Function</button>
+    <div id="output"></div>
+    
+    <script>
+        // Check if startSimulation exists
+        if (typeof startSimulation === 'function') {
+            document.getElementById('output').innerHTML += '<p>✅ startSimulation function exists</p>';
+        } else {
+            document.getElementById('output').innerHTML += '<p>❌ startSimulation function does NOT exist</p>';
+        }
+        
+        // Check if window.startSimulation exists
+        if (typeof window.startSimulation === 'function') {
+            document.getElementById('output').innerHTML += '<p>✅ window.startSimulation exists</p>';
+        } else {
+            document.getElementById('output').innerHTML += '<p>❌ window.startSimulation does NOT exist</p>';
+        }
+        
+        function testButton() {
+            console.log('Testing button click...');
+            if (typeof window.startSimulation === 'function') {
+                try {
+                    window.startSimulation();
+                    document.getElementById('output').innerHTML += '<p>✅ Function call successful!</p>';
+                } catch (error) {
+                    document.getElementById('output').innerHTML += '<p>❌ Function call failed: ' + error.message + '</p>';
+                }
+            } else {
+                document.getElementById('output').innerHTML += '<p>❌ window.startSimulation does NOT exist</p>';
+            }
+        }
+        
+        function checkFunction() {
+            console.log('Checking function availability...');
+            console.log('startSimulation type:', typeof window.startSimulation);
+            console.log('window.startSimulation:', window.startSimulation);
+        }
+    </script>
+</body>
+</html>

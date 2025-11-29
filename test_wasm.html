@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WASM Test</title>
+</head>
+<body>
+    <h1>WebAssembly Test</h1>
+    <button onclick="testWasm()">Test WASM</button>
+    <div id="output"></div>
+    
+    <script type="module">
+        import init, { SimulationConfig, run_simulation, test_wasm } from './wasm_sim.js';
+        
+        let wasmModule = null;
+        
+        async function testWasm() {
+            try {
+                wasmModule = await init();
+                console.log('WASM loaded successfully');
+                
+                // Test basic functionality
+                const testResult = test_wasm();
+                console.log('WASM test result:', testResult);
+                
+                // Test quick simulation
+                const config = new SimulationConfig();
+                config.n = 1000;  // Small test
+                config.steady_state = 300000n;
+                config.z_m = 300000n;
+                config.t_r = 3000n;
+                config.r_base = 0.6;
+                config.mid_100k = 50000;
+                config.mid_100 = 50;
+                config.t_sim = 800n;
+                config.run_type = 6;
+                config.ramp_multiplier = 3.0;
+                config.ml_mult = 2.0;
+                config.mn_mult = 50.0;
+                config.add_noise = false;
+                config.users_pay_more = false;
+                config.simple_blocks = true;
+                
+                console.log('Running quick WASM simulation...');
+                const start = performance.now();
+                const results = run_simulation(config);
+                const end = performance.now();
+                
+                document.getElementById('output').innerHTML = 
+                    '<h2>Results:</h2>' +
+                    '<p><strong>Time:</strong> ' + (end - start).toFixed(2) + 'ms</p>' +
+                    '<p><strong>Max Block Size:</strong> ' + results.max_mb + ' bytes</p>' +
+                    '<p><strong>Data Points:</strong> ' + results.data_points + '</p>';
+                
+            } catch (error) {
+                console.error('WASM error:', error);
+                document.getElementById('output').innerHTML = 
+                    '<h2>Error:</h2><p>' + error.message + '</p>';
+            }
+        }
+        
+        window.onload = testWasm;
+    </script>
+</body>
+</html>
