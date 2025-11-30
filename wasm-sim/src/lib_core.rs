@@ -17,6 +17,8 @@ pub struct SimulationConfig {
     pub add_noise: bool,
     pub users_pay_more: bool,
     pub simple_blocks: bool,
+    pub large_sim_mode: bool,
+    pub exact_median: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -93,13 +95,33 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
     let mut m_l_sorted: Vec<i64> = vec![config.steady_state; len_l];
     let mut m_s_sorted: Vec<i64> = vec![config.steady_state; len_s];
     
-    // PERFORMANCE FIX: Sort much less frequently!
-    // For 100k elements, sort every 10k-50k updates instead of every 1k
-    let sort_interval_l = (len_l / 2).max(1000);  // Was: (len_l / 100).max(100)
-    let sort_interval_s = (len_s / 2).max(10);    // Was: (len_s / 10).max(10)
-    
+    // PERFORMANCE FIX: Sort interval depends on exact_median flag
+    let sort_interval_l = if config.exact_median {
+        1  // Sort every update (matches Python bisect behavior)
+    } else {
+        (len_l / 2).max(1000)  // Fast mode: sort every 50k updates
+    };
+
+    let sort_interval_s = if config.exact_median {
+        1  // Sort every update (matches Python bisect behavior)
+    } else {
+        (len_s / 2).max(10)  // Fast mode: sort every 50 updates
+    };
+
     let mut updates_since_sort_l: usize = 0;
     let mut updates_since_sort_s: usize = 0;
+    
+    // Make t_sim mutable for LARGE_SIMULATION_MODE
+    let mut t_sim = config.t_sim;
+
+    // LARGE_SIMULATION_MODE tracking variables
+    let mut t_sim_counter: u32 = 0;
+    let mut t_sim_reset_counter: u32 = 0;
+    let mut m_b_archive: Vec<i64> = if config.large_sim_mode {
+        Vec::with_capacity(n)
+    } else {
+        Vec::new()
+    };
     
     // Mempool
     let mut mempool: [i64; 2] = [0, 0];
@@ -111,9 +133,9 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
     let mut max_mempool: i64 = 0;
     let mut cumulative_fees: f64 = 0.0;
     
-    // Calculate sample rate
-    let sample_rate = (n / 1000).max(1);
-    let data_points = n / sample_rate + 1;
+    // Calculate sample rate - output all values to match Python
+    let sample_rate = 1;  // Output all values
+    let data_points = n;
     
     // Initialize data storage vectors
     let mut m_b_data: Vec<i64> = Vec::with_capacity(data_points);
@@ -164,6 +186,52 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
         // M_B_max
         let m_b_max = 2 * m_n;
         
+        // ============================================
+        // LARGE_SIMULATION_MODE: Dynamic T_sim Scaling
+        // ============================================
+        if config.large_sim_mode {
+            // Improve simulation speed by scaling T_sim off M_S
+            let scale_setting = m_s / config.z_m;
+            
+            // Increase T_sim if blocks are getting large
+            if t_sim <= scale_setting * 800 / 2 {
+                t_sim_counter += 1;
+                if t_sim_counter > 500 {
+                    // Halve mempool transaction counts and double T_sim
+                    mempool[0] /= 2;
+                    mempool[1] /= 2;
+                    t_sim *= 2;
+                    t_sim_counter = 0;
+                }
+            }
+            
+            // Decrease T_sim if blocks are getting small
+            if t_sim >= scale_setting * 800 * 2 {
+                t_sim_counter += 1;
+                if t_sim_counter > 500 {
+                    // Double mempool transaction counts and halve T_sim
+                    mempool[0] *= 2;
+                    mempool[1] *= 2;
+                    t_sim /= 2;
+                    t_sim_counter = 0;
+                }
+            }
+            
+            // Reset mechanism: if blocks are stuck at same size
+            if i > 100 {
+                if m_b_archive[i - 1] == m_b_archive[i - 60] {
+                    t_sim_reset_counter += 1;
+                    if t_sim_reset_counter > 20 && t_sim > 800 && m_s < m_n + t_sim {
+                        // Decrease T_sim to unstick the simulation
+                        mempool[0] *= 2;
+                        mempool[1] *= 2;
+                        t_sim /= 2;
+                        t_sim_reset_counter = 0;
+                    }
+                }
+            }
+        }
+        
         // Fee calculations
         let f_r = config.r_base * (config.t_r as f64) / ((m_l as f64) * (m_l as f64));
         
@@ -194,7 +262,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
             }
         };
         
-        broadcast[1] = vol / config.t_sim;
+        broadcast[1] = vol / t_sim;
         
         // Add noise if enabled
         if config.add_noise && broadcast[1] > 0 {
@@ -220,7 +288,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
         mempool[1] += broadcast[1];
         
         // Fee levels
-        let fees: [f64; 2] = [16.0 * f_r * config.t_sim as f64, f_r * config.t_sim as f64];
+        let fees: [f64; 2] = [16.0 * f_r * t_sim as f64, f_r * t_sim as f64];
         
         // ============================================
         // 3. BUILD BLOCK
@@ -229,7 +297,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
         
         if config.simple_blocks {
             // Simple mode: just fill block from mempool
-            let mempool_total_bytes = (mempool[0] + mempool[1]) * config.t_sim;
+            let mempool_total_bytes = (mempool[0] + mempool[1]) * t_sim;
             m_b = m_b_max.min(mempool_total_bytes);
             
             // Approximate fees
@@ -239,7 +307,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
             }
             
             // Remove from mempool
-            let mut tx_to_remove = (m_b + config.t_sim - 1) / config.t_sim; // ceil division
+            let mut tx_to_remove = (m_b + t_sim - 1) / t_sim; // ceil division
             let remove_from_high = mempool[0].min(tx_to_remove);
             mempool[0] -= remove_from_high;
             tx_to_remove -= remove_from_high;
@@ -262,7 +330,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
                     }
                     
                     let b = (m_b as f64 / m_n as f64) - 1.0;
-                    let mut t_t = config.t_sim as f64;
+                    let mut t_t = t_sim as f64;
                     if t_t > (m_b - m_n) as f64 && m_b > m_n {
                         t_t = (m_b - m_n) as f64;
                     }
@@ -277,7 +345,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
                         break;
                     }
                     
-                    m_b += config.t_sim;
+                    m_b += t_sim;
                 }
             }
             
@@ -326,10 +394,15 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
         
         m_l_prev = m_l;
         
+        // Store M_B for LARGE_SIMULATION_MODE reset detection
+        if config.large_sim_mode {
+            m_b_archive.push(m_b);
+        }
+        
         // ============================================
         // 6. TRACK STATS & STORE DATA
         // ============================================
-        let mempool_size_bytes = (mempool[0] + mempool[1]) * config.t_sim;
+        let mempool_size_bytes = (mempool[0] + mempool[1]) * t_sim;
         if mempool_size_bytes > max_mempool { max_mempool = mempool_size_bytes; }
         if m_b > max_mb { max_mb = m_b; }
         if p_b > max_penalty { max_penalty = p_b; }
@@ -340,7 +413,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
             m_l_data.push(m_l);
             m_s_data.push(m_s);
             m_n_data.push(m_n);
-            input_volume_data.push(broadcast[1] * config.t_sim);
+            input_volume_data.push(broadcast[1] * t_sim);
             block_fee_data.push(block_fee_total);
             penalty_data.push(p_b);
             mempool_size_data.push(mempool_size_bytes);

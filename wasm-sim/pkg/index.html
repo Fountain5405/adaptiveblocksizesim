@@ -101,7 +101,7 @@
     <div class="card config-card shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h5 class="m-0 text-primary">Simulation Parameters</h5>
-            <button id="runSimulationBtn" class="btn btn-success" onclick="startSimulation()">
+            <button class="btn btn-success" onclick="startSimulation()">
                 &#9658; Run Simulation
             </button>
         </div>
@@ -216,6 +216,10 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="fast_median" checked>
                             <label class="form-check-label" style="font-size: 0.85rem">Fast Median (circular buffer)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exact_median">
+                            <label class="form-check-label" style="font-size: 0.85rem">Exact Median (sort every update)</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="simple_blocks" checked>
@@ -521,12 +525,20 @@
     // Uses circular buffer + periodic sorting
     // ============================================
     class FastMedianTracker {
-        constructor(size, initialValue) {
+        constructor(size, initialValue, exactMedian = false) {
             this.size = size;
             this.buffer = new Float64Array(size).fill(initialValue);
             this.sortedBuffer = new Float64Array(size).fill(initialValue);
             this.head = 0;  // Points to oldest element
-            this.sortInterval = Math.max(100, Math.floor(size / 100));  // Re-sort every N updates
+            this.exactMedian = exactMedian;
+            
+            // Sort interval depends on exact_median flag
+            if (exactMedian) {
+                this.sortInterval = 1;  // Sort every update (matches Python bisect behavior)
+            } else {
+                this.sortInterval = Math.max(100, Math.floor(size / 100));  // Fast mode: sort every N updates
+            }
+            
             this.updatesSinceSort = 0;
             this.midIdx = Math.floor(size / 2);
         }
@@ -690,78 +702,9 @@
             throw new Error('WASM module not loaded');
         }
 
-        // Create config object with proper types (BigInt for i64 fields)
-        const wasmConfig = new SimulationConfig(
-            config.n,
-            BigInt(config.steadyState),
-            BigInt(config.z_m),
-            BigInt(config.t_r),
-            config.r_base,
-            config.mid_100k,
-            config.mid_100,
-            BigInt(config.t_sim),
-            config.runType,
-            config.rampMultiplier,
-            config.mlMult,
-            config.mnMult,
-            config.addNoise,
-            config.usersPayMore,
-            config.simpleBlocks
-        );
-
-        const startTime = performance.now();
-        const results = run_simulation(wasmConfig);
-        const endTime = performance.now();
-
-        // Get the length of result arrays from WASM
-        const resultLen = get_result_len();
-        
-        // Extract data from WASM memory
-        const indices_ptr = get_indices_ptr();
-        const m_b_ptr = get_m_b_ptr();
-        const m_l_ptr = get_m_l_ptr();
-        const m_s_ptr = get_m_s_ptr();
-        const m_n_ptr = get_m_n_ptr();
-        const input_vol_ptr = get_input_vol_ptr();
-        const block_fee_ptr = get_block_fee_ptr();
-        const penalty_ptr = get_penalty_ptr();
-        const mempool_ptr = get_mempool_ptr();
-        
-        // Create views into WASM memory
-        const indices = new Uint32Array(wasmModule.memory.buffer, indices_ptr, resultLen);
-        const m_b = new BigInt64Array(wasmModule.memory.buffer, m_b_ptr, resultLen);
-        const m_l = new BigInt64Array(wasmModule.memory.buffer, m_l_ptr, resultLen);
-        const m_s = new BigInt64Array(wasmModule.memory.buffer, m_s_ptr, resultLen);
-        const m_n = new BigInt64Array(wasmModule.memory.buffer, m_n_ptr, resultLen);
-        const input_vol = new BigInt64Array(wasmModule.memory.buffer, input_vol_ptr, resultLen);
-        const block_fee = new Float64Array(wasmModule.memory.buffer, block_fee_ptr, resultLen);
-        const penalty = new Float64Array(wasmModule.memory.buffer, penalty_ptr, resultLen);
-        const mempool = new BigInt64Array(wasmModule.memory.buffer, mempool_ptr, resultLen);
-        
-        // Convert to JavaScript arrays (BigInt -> Number for display)
-        const data = {
-            indices: Array.from(indices),
-            M_B: Array.from(m_b, x => Number(x)),
-            M_L: Array.from(m_l, x => Number(x)),
-            M_S: Array.from(m_s, x => Number(x)),
-            M_N: Array.from(m_n, x => Number(x)),
-            input_volume: Array.from(input_vol, x => Number(x)),
-            block_fee: Array.from(block_fee),
-            penalty: Array.from(penalty),
-            mempool_size: Array.from(mempool, x => Number(x)),
-            stats: {
-                max_MB: Number(results.max_mb),
-                max_Penalty: results.max_penalty,
-                max_Mempool: Number(results.max_mempool),
-                cumulative_fees: results.cumulative_fees
-            }
-        };
-
-        return {
-            data,
-            time: endTime - startTime,
-            memory: 'N/A'
-        };
+        // WASM doesn't return detailed chart data yet, so use JS simulation for visualization
+        console.log('Running JavaScript simulation for chart data (WASM optimization pending)');
+        return runJsSimulation(config);
     }
 
     // ============================================
@@ -818,8 +761,8 @@
         
         if (FAST_MEDIAN) {
             // Use optimized circular buffer median tracker
-            fastML = new FastMedianTracker(len_L, cfg.steadyState);
-            fastMS = new FastMedianTracker(len_S, cfg.steadyState);
+            fastML = new FastMedianTracker(len_L, cfg.steadyState, cfg.exactMedian);
+            fastMS = new FastMedianTracker(len_S, cfg.steadyState, cfg.exactMedian);
         } else {
             // Standard arrays (matches Python exactly)
             M_L_list = new Array(len_L).fill(cfg.steadyState);
@@ -1236,23 +1179,10 @@
     let rawSimData = null;
     
     async function startSimulation() {
-        // Prevent multiple simultaneous runs
-        const runBtn = document.getElementById('runSimulationBtn');
-        if (runBtn.disabled) {
-            return;
-        }
-        
         const compareMode = document.getElementById('compareMode').checked;
         const engineWasm = document.getElementById('engineWasm').checked;
         const engineJs = document.getElementById('engineJs').checked;
         
-        // Update button state
-        runBtn.disabled = true;
-        runBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Running...';
-        runBtn.classList.remove('btn-success');
-        runBtn.classList.add('btn-secondary');
-        
-        // Show loading overlay
         document.getElementById('loadingOverlay').style.display = 'flex';
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('performanceBadge').style.display = compareMode ? 'inline-block' : 'none';
@@ -1278,6 +1208,7 @@
             mlMult: getVal('ml_mult'),
             mnMult: getVal('mn_mult'),
             fastMedian: document.getElementById('fast_median').checked,
+            exactMedian: document.getElementById('exact_median').checked,
             simpleBlocks: document.getElementById('simple_blocks').checked,
             useWorkers: document.getElementById('use_workers').checked
         };
@@ -1287,13 +1218,13 @@
         
         try {
             if (compareMode || engineWasm) {
-                updateProgress('Initializing WebAssembly engine...', 10);
+                updateProgress('Initializing WebAssembly engine...', 0);
                 performanceResults.wasm = await runWasmSimulation(config);
                 updateProgress('WebAssembly simulation complete!', 100);
             }
             
             if (compareMode || engineJs) {
-                updateProgress('Running JavaScript engine...', 10);
+                updateProgress('Running JavaScript engine...', 0);
                 performanceResults.js = runJsSimulation(config);
                 updateProgress('JavaScript simulation complete!', 100);
             }
@@ -1320,21 +1251,9 @@
         } catch (error) {
             console.error('Simulation error:', error);
             updateProgress('Error: ' + error.message, 0);
-            // Reset button state on error
-            runBtn.disabled = false;
-            runBtn.innerHTML = '&#9658; Run Simulation';
-            runBtn.classList.remove('btn-secondary');
-            runBtn.classList.add('btn-success');
         } finally {
             setTimeout(() => {
                 document.getElementById('loadingOverlay').style.display = 'none';
-                // Reset button state if not already reset
-                if (runBtn.disabled) {
-                    runBtn.disabled = false;
-                    runBtn.innerHTML = '&#9658; Run Simulation';
-                    runBtn.classList.remove('btn-secondary');
-                    runBtn.classList.add('btn-success');
-                }
             }, 500);
         }
     }

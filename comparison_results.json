@@ -1,0 +1,577 @@
+[
+  {
+    "scenario": "Basic Test",
+    "description": "Basic simulation with exact median",
+    "metrics": {
+      "max_mb": {
+        "description": "Maximum block size",
+        "python": 332000,
+        "rust": 332000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "max_penalty": {
+        "description": "Maximum penalty",
+        "python": 2.49739854318411e-05,
+        "rust": 2.4973985431841097e-05,
+        "matches": true,
+        "difference_percent": 1.3566644371856773e-16
+      },
+      "max_mempool": {
+        "description": "Maximum mempool size",
+        "python": 33646400,
+        "rust": 33646400,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "cumulative_fees": {
+        "description": "Cumulative fees",
+        "python": 6.303071999999999,
+        "rust": 6.303072000000092,
+        "matches": true,
+        "difference_percent": 1.4654846977602832e-14
+      },
+      "final_mb": {
+        "description": "Final block size",
+        "python": 332000,
+        "rust": 332000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ml": {
+        "description": "Final long-term median",
+        "python": 300000.0,
+        "rust": 300000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ms": {
+        "description": "Final short-term median",
+        "python": 330400.0,
+        "rust": 330400,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_mn": {
+        "description": "Final penalty median",
+        "python": 330400.0,
+        "rust": 330400,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_t_sim": {
+        "description": "Final T_sim",
+        "python": 800,
+        "rust": 800,
+        "matches": true,
+        "difference_percent": 0.0
+      }
+    },
+    "sample_data_comparison": {
+      "M_B": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "M_L": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "M_S": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "M_N": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "input_volume": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "block_fee": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "penalty": {
+        "matches": true,
+        "max_difference_percent": 2.1803898611747132e-16,
+        "length": 1000
+      },
+      "t_sim": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      }
+    },
+    "overall_match": true,
+    "python_execution_time": 0.5332152843475342,
+    "rust_execution_time": 0.2746121883392334,
+    "performance_ratio": 1.9417029068237994
+  },
+  {
+    "scenario": "Large Simulation Mode",
+    "description": "Test LARGE_SIMULATION_MODE with exact median",
+    "metrics": {
+      "max_mb": {
+        "description": "Maximum block size",
+        "python": 369600,
+        "rust": 369600,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "max_penalty": {
+        "description": "Maximum penalty",
+        "python": 2.8537455410226035e-05,
+        "rust": 2.8537455410226035e-05,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "max_mempool": {
+        "description": "Maximum mempool size",
+        "python": 1533536000,
+        "rust": 1533536000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "cumulative_fees": {
+        "description": "Cumulative fees",
+        "python": 13.281279999999999,
+        "rust": 13.28128000000012,
+        "matches": true,
+        "difference_percent": 9.094926473895365e-15
+      },
+      "final_mb": {
+        "description": "Final block size",
+        "python": 369600,
+        "rust": 369600,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ml": {
+        "description": "Final long-term median",
+        "python": 300000.0,
+        "rust": 300000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ms": {
+        "description": "Final short-term median",
+        "python": 367200.0,
+        "rust": 367200,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_mn": {
+        "description": "Final penalty median",
+        "python": 367200.0,
+        "rust": 367200,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_t_sim": {
+        "description": "Final T_sim",
+        "python": 800,
+        "rust": 800,
+        "matches": true,
+        "difference_percent": 0.0
+      }
+    },
+    "sample_data_comparison": {
+      "M_B": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "M_L": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "M_S": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "M_N": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "input_volume": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "block_fee": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "penalty": {
+        "matches": true,
+        "max_difference_percent": 2.5073304615989535e-16,
+        "length": 2000
+      },
+      "t_sim": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      }
+    },
+    "overall_match": true,
+    "python_execution_time": 1.070202350616455,
+    "rust_execution_time": 0.5630090236663818,
+    "performance_ratio": 1.900861807946114
+  },
+  {
+    "scenario": "Fast Median Mode",
+    "description": "Test fast median mode",
+    "metrics": {
+      "max_mb": {
+        "description": "Maximum block size",
+        "python": 332000,
+        "rust": 316000,
+        "matches": false,
+        "difference_percent": 0.04819277108433735
+      },
+      "max_penalty": {
+        "description": "Maximum penalty",
+        "python": 2.49739854318411e-05,
+        "rust": 1.706666666666717e-05,
+        "matches": false,
+        "difference_percent": 0.3166222222221821
+      },
+      "max_mempool": {
+        "description": "Maximum mempool size",
+        "python": 33646400,
+        "rust": 40819200,
+        "matches": false,
+        "difference_percent": 0.21318179656664607
+      },
+      "cumulative_fees": {
+        "description": "Cumulative fees",
+        "python": 6.303071999999999,
+        "rust": 6.1596160000000095,
+        "matches": false,
+        "difference_percent": 0.022759695589704487
+      },
+      "final_mb": {
+        "description": "Final block size",
+        "python": 332000,
+        "rust": 316000,
+        "matches": false,
+        "difference_percent": 0.04819277108433735
+      },
+      "final_ml": {
+        "description": "Final long-term median",
+        "python": 300000.0,
+        "rust": 300000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ms": {
+        "description": "Final short-term median",
+        "python": 330400.0,
+        "rust": 314400,
+        "matches": false,
+        "difference_percent": 0.048426150121065374
+      },
+      "final_mn": {
+        "description": "Final penalty median",
+        "python": 330400.0,
+        "rust": 314400,
+        "matches": false,
+        "difference_percent": 0.048426150121065374
+      },
+      "final_t_sim": {
+        "description": "Final T_sim",
+        "python": 800,
+        "rust": 800,
+        "matches": true,
+        "difference_percent": 0.0
+      }
+    },
+    "sample_data_comparison": {
+      "M_B": {
+        "matches": false,
+        "max_difference_percent": 0.010443864229765013,
+        "length": 1000
+      },
+      "M_L": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "M_S": {
+        "matches": false,
+        "max_difference_percent": 0.010498687664041995,
+        "length": 1000
+      },
+      "M_N": {
+        "matches": false,
+        "max_difference_percent": 0.010498687664041995,
+        "length": 1000
+      },
+      "input_volume": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      },
+      "block_fee": {
+        "matches": false,
+        "max_difference_percent": 0.010471204188481647,
+        "length": 1000
+      },
+      "penalty": {
+        "matches": false,
+        "max_difference_percent": 0.7825216790123493,
+        "length": 1000
+      },
+      "t_sim": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1000
+      }
+    },
+    "overall_match": false,
+    "python_execution_time": 0.5288887023925781,
+    "rust_execution_time": 0.008327007293701172,
+    "performance_ratio": 63.51485998969249
+  },
+  {
+    "scenario": "Both Features Enabled",
+    "description": "Test both LARGE_SIMULATION_MODE and fast median",
+    "metrics": {
+      "max_mb": {
+        "description": "Maximum block size",
+        "python": 201600,
+        "rust": 201600,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "max_penalty": {
+        "description": "Maximum penalty",
+        "python": 0,
+        "rust": 0,
+        "matches": true,
+        "difference_percent": 0
+      },
+      "max_mempool": {
+        "description": "Maximum mempool size",
+        "python": 0.0,
+        "rust": 0,
+        "matches": true,
+        "difference_percent": 0
+      },
+      "cumulative_fees": {
+        "description": "Cumulative fees",
+        "python": 5.867712,
+        "rust": 5.86771200000002,
+        "matches": true,
+        "difference_percent": 3.3300757149299e-15
+      },
+      "final_mb": {
+        "description": "Final block size",
+        "python": 201600,
+        "rust": 201600,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ml": {
+        "description": "Final long-term median",
+        "python": 300000.0,
+        "rust": 300000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ms": {
+        "description": "Final short-term median",
+        "python": 300000.0,
+        "rust": 300000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_mn": {
+        "description": "Final penalty median",
+        "python": 300000.0,
+        "rust": 300000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_t_sim": {
+        "description": "Final T_sim",
+        "python": 800,
+        "rust": 800,
+        "matches": true,
+        "difference_percent": 0.0
+      }
+    },
+    "sample_data_comparison": {
+      "M_B": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "M_L": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "M_S": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "M_N": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "input_volume": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "block_fee": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "penalty": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      },
+      "t_sim": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 2000
+      }
+    },
+    "overall_match": true,
+    "python_execution_time": 0.5638887882232666,
+    "rust_execution_time": 0.009707927703857422,
+    "performance_ratio": 58.085392209833486
+  },
+  {
+    "scenario": "Sine Wave Pattern",
+    "description": "Test sine wave pattern with both features",
+    "metrics": {
+      "max_mb": {
+        "description": "Maximum block size",
+        "python": 346400,
+        "rust": 346400,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "max_penalty": {
+        "description": "Maximum penalty",
+        "python": 2.49739854318411e-05,
+        "rust": 2.4973985431841097e-05,
+        "matches": true,
+        "difference_percent": 1.3566644371856773e-16
+      },
+      "max_mempool": {
+        "description": "Maximum mempool size",
+        "python": 30067200,
+        "rust": 30067200,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "cumulative_fees": {
+        "description": "Cumulative fees",
+        "python": 9.671744,
+        "rust": 9.671744000000057,
+        "matches": true,
+        "difference_percent": 5.877266691592335e-15
+      },
+      "final_mb": {
+        "description": "Final block size",
+        "python": 346400,
+        "rust": 346400,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ml": {
+        "description": "Final long-term median",
+        "python": 300000.0,
+        "rust": 300000,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_ms": {
+        "description": "Final short-term median",
+        "python": 344800.0,
+        "rust": 344800,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_mn": {
+        "description": "Final penalty median",
+        "python": 344800.0,
+        "rust": 344800,
+        "matches": true,
+        "difference_percent": 0.0
+      },
+      "final_t_sim": {
+        "description": "Final T_sim",
+        "python": 800,
+        "rust": 800,
+        "matches": true,
+        "difference_percent": 0.0
+      }
+    },
+    "sample_data_comparison": {
+      "M_B": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1500
+      },
+      "M_L": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1500
+      },
+      "M_S": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1500
+      },
+      "M_N": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1500
+      },
+      "input_volume": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1500
+      },
+      "block_fee": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1500
+      },
+      "penalty": {
+        "matches": true,
+        "max_difference_percent": 2.1803898611747132e-16,
+        "length": 1500
+      },
+      "t_sim": {
+        "matches": true,
+        "max_difference_percent": 0,
+        "length": 1500
+      }
+    },
+    "overall_match": true,
+    "python_execution_time": 0.7980337142944336,
+    "rust_execution_time": 0.36248779296875,
+    "performance_ratio": 2.2015464514227983
+  }
+]

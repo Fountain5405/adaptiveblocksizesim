@@ -53,7 +53,7 @@
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
     <h4 class="mt-3 text-primary">Running Simulation...</h4>
     <p class="text-muted">Calculating medians and mempool growth</p>
-    <div class="progress-container">
+    <div id="progressContainer" class="progress-container">
         <div class="progress" style="width: 300px;">
             <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%">0%</div>
         </div>
@@ -216,6 +216,10 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="fast_median" checked>
                             <label class="form-check-label" style="font-size: 0.85rem">Fast Median (circular buffer)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exact_median">
+                            <label class="form-check-label" style="font-size: 0.85rem">Exact Median (sort every update)</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="simple_blocks" checked>
@@ -521,12 +525,20 @@
     // Uses circular buffer + periodic sorting
     // ============================================
     class FastMedianTracker {
-        constructor(size, initialValue) {
+        constructor(size, initialValue, exactMedian = false) {
             this.size = size;
             this.buffer = new Float64Array(size).fill(initialValue);
             this.sortedBuffer = new Float64Array(size).fill(initialValue);
             this.head = 0;  // Points to oldest element
-            this.sortInterval = Math.max(100, Math.floor(size / 100));  // Re-sort every N updates
+            this.exactMedian = exactMedian;
+            
+            // Sort interval depends on exact_median flag
+            if (exactMedian) {
+                this.sortInterval = 1;  // Sort every update (matches Python bisect behavior)
+            } else {
+                this.sortInterval = Math.max(100, Math.floor(size / 100));  // Fast mode: sort every N updates
+            }
+            
             this.updatesSinceSort = 0;
             this.midIdx = Math.floor(size / 2);
         }
@@ -690,60 +702,9 @@
             throw new Error('WASM module not loaded');
         }
 
-        // Create config object with proper types (BigInt for i64 fields)
-        const wasmConfig = new SimulationConfig();
-        wasmConfig.n = config.n;
-        wasmConfig.steady_state = BigInt(config.steadyState);
-        wasmConfig.z_m = BigInt(config.z_m);
-        wasmConfig.t_r = BigInt(config.t_r);
-        wasmConfig.r_base = config.r_base;
-        wasmConfig.mid_100k = config.mid_100k;
-        wasmConfig.mid_100 = config.mid_100;
-        wasmConfig.t_sim = BigInt(config.t_sim);
-        wasmConfig.run_type = config.runType;
-        wasmConfig.ramp_multiplier = config.rampMultiplier;
-        wasmConfig.ml_mult = config.mlMult;
-        wasmConfig.mn_mult = config.mnMult;
-        wasmConfig.add_noise = config.addNoise;
-        wasmConfig.users_pay_more = config.usersPayMore;
-        wasmConfig.simple_blocks = config.simpleBlocks;
-
-        const startTime = performance.now();
-        const results = run_simulation(wasmConfig);
-        const endTime = performance.now();
-
-        // For now, WASM version only returns summary stats (optimized for performance)
-        // We'll run a second simulation to get detailed data if needed
-        const data = {
-            indices: [],
-            M_B: [],
-            M_L: [],
-            M_S: [],
-            M_N: [],
-            input_volume: [],
-            block_fee: [],
-            penalty: [],
-            mempool_size: [],
-            stats: {
-                max_MB: Number(results.max_mb),
-                max_Penalty: results.max_penalty,
-                max_Mempool: Number(results.max_mempool),
-                cumulative_fees: results.cumulative_fees
-            }
-        };
-
-        // If detailed data is needed, run JavaScript simulation instead
-        if (charts.combined && charts.combined.data.datasets[0].data.length > 0) {
-            // User wants to see detailed charts, use JavaScript version
-            console.log('Using JavaScript simulation for detailed data visualization');
-            return runJsSimulation(config);
-        }
-
-        return {
-            data,
-            time: endTime - startTime,
-            memory: 'N/A'
-        };
+        // WASM doesn't return detailed chart data yet, so use JS simulation for visualization
+        console.log('Running JavaScript simulation for chart data (WASM optimization pending)');
+        return runJsSimulation(config);
     }
 
     // ============================================
@@ -800,8 +761,8 @@
         
         if (FAST_MEDIAN) {
             // Use optimized circular buffer median tracker
-            fastML = new FastMedianTracker(len_L, cfg.steadyState);
-            fastMS = new FastMedianTracker(len_S, cfg.steadyState);
+            fastML = new FastMedianTracker(len_L, cfg.steadyState, cfg.exactMedian);
+            fastMS = new FastMedianTracker(len_S, cfg.steadyState, cfg.exactMedian);
         } else {
             // Standard arrays (matches Python exactly)
             M_L_list = new Array(len_L).fill(cfg.steadyState);
@@ -1247,6 +1208,7 @@
             mlMult: getVal('ml_mult'),
             mnMult: getVal('mn_mult'),
             fastMedian: document.getElementById('fast_median').checked,
+            exactMedian: document.getElementById('exact_median').checked,
             simpleBlocks: document.getElementById('simple_blocks').checked,
             useWorkers: document.getElementById('use_workers').checked
         };

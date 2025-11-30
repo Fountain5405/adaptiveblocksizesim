@@ -42,6 +42,8 @@ pub struct SimulationConfig {
     pub add_noise: bool,
     pub users_pay_more: bool,
     pub simple_blocks: bool,
+    pub large_sim_mode: bool,
+    pub exact_median: bool,
 }
 
 #[wasm_bindgen]
@@ -63,6 +65,8 @@ impl SimulationConfig {
         add_noise: bool,
         users_pay_more: bool,
         simple_blocks: bool,
+        large_sim_mode: bool,
+        exact_median: bool,
     ) -> SimulationConfig {
         SimulationConfig {
             n,
@@ -80,6 +84,8 @@ impl SimulationConfig {
             add_noise,
             users_pay_more,
             simple_blocks,
+            large_sim_mode,
+            exact_median,
         }
     }
 }
@@ -102,6 +108,8 @@ impl From<SimulationConfig> for CoreConfig {
             add_noise: config.add_noise,
             users_pay_more: config.users_pay_more,
             simple_blocks: config.simple_blocks,
+            large_sim_mode: config.large_sim_mode,
+            exact_median: config.exact_median,
         }
     }
 }

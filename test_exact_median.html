@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exact Median Test</title>
+</head>
+<body>
+    <h1>Exact Median Test</h1>
+    <button onclick="testExactMedian()">Test Exact Median Mode</button>
+    <button onclick="testFastMedian()">Test Fast Median Mode</button>
+    <div id="results"></div>
+
+    <script type="module">
+        import init, { SimulationConfig, run_simulation } from './wasm-sim/pkg/wasm_sim.js';
+
+        async function testExactMedian() {
+            await init();
+            
+            const config = new SimulationConfig();
+            config.n = 1000;
+            config.steady_state = BigInt(300000);
+            config.z_m = BigInt(300000);
+            config.t_r = BigInt(3000);
+            config.r_base = 0.6;
+            config.mid_100k = 50000;
+            config.mid_100 = 50;
+            config.t_sim = BigInt(800);
+            config.run_type = 6;
+            config.ramp_multiplier = 3.0;
+            config.ml_mult = 2.0;
+            config.mn_mult = 50.0;
+            config.add_noise = false;
+            config.users_pay_more = false;
+            config.simple_blocks = true;
+            config.large_sim_mode = false;
+            config.exact_median = true;  // Exact median mode
+            
+            const startTime = performance.now();
+            const results = run_simulation(config);
+            const endTime = performance.now();
+            
+            document.getElementById('results').innerHTML = `
+                <h3>Exact Median Mode Results</h3>
+                <p>Calculation Time: ${(endTime - startTime).toFixed(2)}ms</p>
+                <p>Max Block Size: ${results.max_mb}</p>
+                <p>Max Penalty: ${results.max_penalty}</p>
+                <p>Max Mempool: ${results.max_mempool}</p>
+                <p>Cumulative Fees: ${results.cumulative_fees}</p>
+            `;
+        }
+
+        async function testFastMedian() {
+            await init();
+            
+            const config = new SimulationConfig();
+            config.n = 1000;
+            config.steady_state = BigInt(300000);
+            config.z_m = BigInt(300000);
+            config.t_r = BigInt(3000);
+            config.r_base = 0.6;
+            config.mid_100k = 50000;
+            config.mid_100 = 50;
+            config.t_sim = BigInt(800);
+            config.run_type = 6;
+            config.ramp_multiplier = 3.0;
+            config.ml_mult = 2.0;
+            config.mn_mult = 50.0;
+            config.add_noise = false;
+            config.users_pay_more = false;
+            config.simple_blocks = true;
+            config.large_sim_mode = false;
+            config.exact_median = false;  // Fast median mode
+            
+            const startTime = performance.now();
+            const results = run_simulation(config);
+            const endTime = performance.now();
+            
+            document.getElementById('results').innerHTML = `
+                <h3>Fast Median Mode Results</h3>
+                <p>Calculation Time: ${(endTime - startTime).toFixed(2)}ms</p>
+                <p>Max Block Size: ${results.max_mb}</p>
+                <p>Max Penalty: ${results.max_penalty}</p>
+                <p>Max Mempool: ${results.max_mempool}</p>
+                <p>Cumulative Fees: ${results.cumulative_fees}</p>
+            `;
+        }
+    </script>
+</body>
+</html>
