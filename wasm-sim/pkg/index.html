@@ -702,9 +702,91 @@
             throw new Error('WASM module not loaded');
         }
 
-        // WASM doesn't return detailed chart data yet, so use JS simulation for visualization
-        console.log('Running JavaScript simulation for chart data (WASM optimization pending)');
-        return runJsSimulation(config);
+        const startTime = performance.now();
+        
+        try {
+            // Create WASM configuration object
+            // Note: WASM expects BigInt for i64 types
+            const wasmConfig = new SimulationConfig(
+                config.n,
+                BigInt(config.steadyState),
+                BigInt(config.z_m),
+                BigInt(config.t_r),
+                config.r_base,
+                config.mid_100k,
+                config.mid_100,
+                BigInt(config.t_sim),
+                config.runType,
+                config.rampMultiplier,
+                config.mlMult,
+                config.mnMult,
+                config.addNoise,
+                config.usersPayMore,
+                config.simpleBlocks,
+                config.largeSimMode,
+                config.exactMedian
+            );
+            
+            // Run WASM simulation
+            const results = run_simulation(wasmConfig);
+            
+            // Get the length of result arrays
+            const len = get_result_len();
+            
+            // Read data from WASM memory using the pointer functions
+            // WASM memory is a linear buffer that we can access as typed arrays
+            const memory = wasmModule.memory.buffer;
+            
+            // Helper function to read i64 array from WASM memory
+            const readI64Array = (ptr, length) => {
+                const view = new BigInt64Array(memory, ptr, length);
+                // Convert BigInt to regular numbers for JavaScript compatibility
+                return Array.from(view, v => Number(v));
+            };
+            
+            // Helper function to read f64 array from WASM memory
+            const readF64Array = (ptr, length) => {
+                const view = new Float64Array(memory, ptr, length);
+                return Array.from(view);
+            };
+            
+            // Helper function to read u32 array from WASM memory
+            const readU32Array = (ptr, length) => {
+                const view = new Uint32Array(memory, ptr, length);
+                return Array.from(view);
+            };
+            
+            // Read all data arrays from WASM memory
+            const data = {
+                M_B: readI64Array(get_m_b_ptr(), len),
+                M_L: readI64Array(get_m_l_ptr(), len),
+                M_S: readI64Array(get_m_s_ptr(), len),
+                M_N: readI64Array(get_m_n_ptr(), len),
+                input_volume: readI64Array(get_input_vol_ptr(), len),
+                block_fee: readF64Array(get_block_fee_ptr(), len),
+                penalty: readF64Array(get_penalty_ptr(), len),
+                mempool_size: readI64Array(get_mempool_ptr(), len),
+                indices: readU32Array(get_indices_ptr(), len),
+                stats: {
+                    max_MB: Number(results.max_mb),
+                    max_Penalty: results.max_penalty,
+                    max_Mempool: Number(results.max_mempool),
+                    cumulative_fees: results.cumulative_fees
+                }
+            };
+            
+            const endTime = performance.now();
+            
+            return {
+                data,
+                time: endTime - startTime,
+                memory: 'N/A'
+            };
+            
+        } catch (error) {
+            console.error('WASM simulation error:', error);
+            throw error;
+        }
     }
 
     // ============================================
@@ -1183,10 +1265,23 @@
         const engineWasm = document.getElementById('engineWasm').checked;
         const engineJs = document.getElementById('engineJs').checked;
         
+        // Show loading overlay IMMEDIATELY with initial status
         document.getElementById('loadingOverlay').style.display = 'flex';
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('performanceBadge').style.display = compareMode ? 'inline-block' : 'none';
         document.getElementById('performanceOutput').style.display = compareMode ? 'block' : 'none';
+        
+        // Show immediate feedback BEFORE any processing
+        if (compareMode) {
+            updateProgress('Preparing to run performance comparison...', 5);
+        } else if (engineWasm) {
+            updateProgress('Preparing WebAssembly simulation...', 5);
+        } else {
+            updateProgress('Preparing JavaScript simulation...', 5);
+        }
+        
+        // Allow UI to update before blocking on simulation
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         const getVal = (id) => parseFloat(document.getElementById(id).value);
         const getInt = (id) => parseInt(document.getElementById(id).value);
