@@ -1265,10 +1265,23 @@
         const engineWasm = document.getElementById('engineWasm').checked;
         const engineJs = document.getElementById('engineJs').checked;
         
+        // Show loading overlay IMMEDIATELY with initial status
         document.getElementById('loadingOverlay').style.display = 'flex';
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('performanceBadge').style.display = compareMode ? 'inline-block' : 'none';
         document.getElementById('performanceOutput').style.display = compareMode ? 'block' : 'none';
+        
+        // Show immediate feedback BEFORE any processing
+        if (compareMode) {
+            updateProgress('Preparing to run performance comparison...', 5);
+        } else if (engineWasm) {
+            updateProgress('Preparing WebAssembly simulation...', 5);
+        } else {
+            updateProgress('Preparing JavaScript simulation...', 5);
+        }
+        
+        // Allow UI to update before blocking on simulation
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         const getVal = (id) => parseFloat(document.getElementById(id).value);
         const getInt = (id) => parseInt(document.getElementById(id).value);
