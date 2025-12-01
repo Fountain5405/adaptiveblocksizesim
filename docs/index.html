@@ -1020,7 +1020,7 @@
             broadcast[1] = Math.floor(vol / T_sim);
             
             // Store input volume before noise
-            let input_volume = broadcast[1] * T_sim;
+            let input_volume = (broadcast[0] + broadcast[1]) * T_sim;
             
             // ADD_NOISE
             if (cfg.addNoise) {
@@ -1206,7 +1206,8 @@
                 results.M_N.push(M_N);
                 results.M_L_weight.push(M_L_weight);
                 results.M_S_weight.push(M_S_weight);
-                results.input_volume.push(input_volume);
+                // Calculate total volume after noise and fee splitting
+                results.input_volume.push((broadcast[0] + broadcast[1]) * T_sim);
                 results.block_fee.push(block_fee_total);
                 results.penalty.push(P_B);
                 results.mempool_size.push(mempool_size_bytes);
