@@ -98,9 +98,9 @@ chmod +x build.sh
 
 The script will:
 1. Build the WebAssembly module
-2. Copy HTML files to the output directory
+2. Copy deployment files to the `docs/` directory
 3. Start a Python HTTP server on port 8000
-4. Open the application in your default browser
+4. Open the application in your default browser at `http://localhost:8000/docs/`
 
 #### Method 2: Manual Build and Deploy
 ```bash
@@ -108,17 +108,17 @@ The script will:
 cd wasm-sim
 wasm-pack build --target web --out-dir pkg
 
-# Copy HTML file to the pkg directory
-cp ../index.html pkg/
+# Copy deployment files to docs directory
+cp *.wasm *.js *.d.ts index.html ../docs/
 
 # Start HTTP server
-cd pkg
+cd ../docs
 python3 -m http.server 8000
 
 # Alternative: Use Node.js serve
 npx serve -s . -p 8000
 
-# Alternative: Use any web server pointing to wasm-sim/pkg/
+# Alternative: Use any web server pointing to docs/
 ```
 
 #### Method 3: Production Deployment with Nginx
@@ -134,7 +134,7 @@ sudo tee /etc/nginx/sites-available/adaptiveblocksizesim > /dev/null <<EOF
 server {
     listen 80;
     server_name your-domain.com;
-    root /path/to/adaptiveblocksizesim/wasm-sim/pkg;
+    root /path/to/adaptiveblocksizesim/docs;
     index index.html;
     
     location / {
@@ -155,6 +155,15 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+### GitHub Pages Deployment
+
+The project is now structured to work seamlessly with GitHub Pages:
+
+1. **Build the project**: Run `./build.sh` to generate the deployment files in the `docs/` directory
+2. **Push to GitHub**: The `docs/` directory contains all files needed for deployment
+3. **Enable GitHub Pages**: In your repository settings, enable GitHub Pages and select "Deploy from a branch" → "main" → "/docs" folder
+4. **Access your site**: Your site will be available at `https://username.github.io/repository-name/`
+
 ### Windows Deployment
 
 #### Method 1: Using PowerShell (Recommended)
@@ -166,11 +175,11 @@ cd adaptiveblocksizesim
 cd wasm-sim
 wasm-pack build --target web --out-dir pkg
 
-# Copy HTML file to the pkg directory
-Copy-Item ..\index.html pkg\
+# Copy deployment files to docs directory
+Copy-Item *.wasm, *.js, *.d.ts, index.html ..\docs\
 
 # Start HTTP server
-cd pkg
+cd ..\docs
 python -m http.server 8000
 
 # Or use Python 3 explicitly
@@ -186,11 +195,11 @@ cd adaptiveblocksizesim
 cd wasm-sim
 wasm-pack build --target web --out-dir pkg
 
-# Copy HTML file
-copy ..\index.html pkg\
+# Copy deployment files to docs directory
+copy *.wasm *.js *.d.ts index.html ..\docs\
 
 # Start HTTP server
-cd pkg
+cd ..\docs
 python -m http.server 8000
 ```
 
@@ -202,15 +211,15 @@ npm install -g serve
 # Build and serve
 cd wasm-sim
 wasm-pack build --target web --out-dir pkg
-Copy-Item ..\index.html pkg\
-cd pkg
+Copy-Item *.wasm, *.js, *.d.ts, index.html ..\docs\
+cd ..\docs
 serve -s . -p 8000
 ```
 
 #### Method 4: Production Deployment with IIS
 1. Build the application using Method 1 or 2
 2. Install IIS (if not already installed)
-3. Create a new website pointing to `wasm-sim/pkg`
+3. Create a new website pointing to `docs/` directory
 4. Configure MIME types for `.wasm` files:
    - Extension: `.wasm`
    - MIME Type: `application/wasm`
@@ -230,13 +239,13 @@ chmod +x test_webpage.sh
 
 # Windows
 # Open PowerShell and run:
-cd wasm-sim/pkg
+cd docs
 python -m http.server 8000
-# Then open http://localhost:8000 in your browser
+# Then open http://localhost:8000/docs/ in your browser
 ```
 
 ### Manual Testing
-1. Open your browser and navigate to `http://localhost:8000`
+1. Open your browser and navigate to `http://localhost:8000/docs/`
 2. Click "Run Simulation" to test the WebAssembly engine
 3. Try different traffic patterns and parameters
 4. Test the performance comparison mode

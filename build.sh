@@ -23,21 +23,25 @@ echo "✅ WebAssembly module built successfully!"
 # Copy the HTML file to the pkg directory for serving
 cp ../index.html pkg/
 
-echo "📁 HTML file copied to pkg directory"
+# Copy deployment files to docs directory
+echo "📁 Copying deployment files to docs directory..."
+cp pkg/*.wasm pkg/*.js pkg/*.d.ts pkg/index.html ../docs/
+
+echo "✅ Deployment files copied to docs directory!"
 
 # Check if Python simple HTTP server is available
 if command -v python3 &> /dev/null; then
     echo "🌐 Starting Python HTTP server..."
-    echo "📂 Open http://localhost:8000/pkg/ in your browser"
-    echo "📂 WebAssembly module will be served from: http://localhost:8000/pkg/"
+    echo "📂 Open http://localhost:8000/docs/ in your browser"
+    echo "📂 WebAssembly module will be served from: http://localhost:8000/docs/"
     
-    # Change to pkg directory and start server
-    cd pkg
+    # Change to docs directory and start server
+    cd ../docs
     python3 -m http.server 8000
 else
     echo "⚠️  Python3 not found. Please install Python3 or use a different server."
     echo "💡 You can serve the files manually with any HTTP server:"
-    echo "   cd wasm-sim/pkg && python -m http.server 8000"
-    echo "   or use Node.js: npx serve -s pkg"
+    echo "   cd docs && python -m http.server 8000"
+    echo "   or use Node.js: npx serve -s docs"
     echo "   or use Live Server extension in VS Code"
 fi

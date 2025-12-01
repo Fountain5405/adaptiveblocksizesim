@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Blocksize Simulator - WebAssembly Edition</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f8f9fa; padding-bottom: 50px; }
+        .config-card { border-left: 5px solid #0d6efd; margin-bottom: 20px; }
+        .chart-card { height: 350px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .chart-card-lg { height: 500px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .chart-container { position: relative; height: 100%; width: 100%; }
+        .form-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px;}
+        .form-text { font-size: 0.75rem; color: #6c757d; display: block; margin-top: 0;}
+        
+        /* Loading Overlay */
+        #loadingOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.85); z-index: 2000; 
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        .version-badge {
+            background: #198754;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+        }
+        .performance-badge {
+            background: #ffc107;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+        }
+        .engine-toggle {
+            margin: 10px 0;
+        }
+        .progress-container {
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h4 class="mt-3 text-primary">Running Simulation...</h4>
+    <p class="text-muted">Calculating medians and mempool growth</p>
+    <div id="progressContainer" class="progress-container">
+        <div class="progress" style="width: 300px;">
+            <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%">0%</div>
+        </div>
+    </div>
+    <div id="progressText" class="text-muted"></div>
+    <div id="engineStatus" class="text-muted"></div>
+</div>
+
+<div class="container-fluid p-4">
+    <h2 class="mb-4">
+        Blockchain Growth & Fee Simulator
+        <span class="version-badge">WASM Edition</span>
+        <span id="performanceBadge" class="performance-badge" style="display: none;">Performance Mode</span>
+    </h2>
+
+    <!-- Engine Selection -->
+    <div class="card config-card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="m-0 text-primary">Simulation Engine</h5>
+        </div>
+        <div class="card-body">
+            <div class="engine-toggle">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="engine" id="engineWasm" value="wasm" checked>
+                    <label class="form-check-label" for="engineWasm">
+                        <strong>WebAssembly (Rust)</strong> - High performance
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="engine" id="engineJs" value="js">
+                    <label class="form-check-label" for="engineJs">
+                        <strong>JavaScript</strong> - Original implementation
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="compareMode">
+                    <label class="form-check-label" for="compareMode">
+                        <strong>Compare Performance</strong> - Run both engines
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card config-card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="m-0 text-primary">Simulation Parameters</h5>
+            <button class="btn btn-success" onclick="startSimulation()">
+                &#9658; Run Simulation
+            </button>
+        </div>
+        <div class="card-body">
+            <form id="simForm">
+                <div class="row g-3">
+                    
+                    <div class="col-md-3 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Network Constants</h6>
+                        
+                        <div class="mb-2">
+                            <label class="form-label">Steady State (Bytes)</label>
+                            <input type="number" id="steady_state" class="form-control form-control-sm" value="300000">
+                            <small class="form-text">Network blocksize at start (M_L, M_S initial)</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Z_M (Penalty Free Zone)</label>
+                            <input type="number" id="z_m" class="form-control form-control-sm" value="300000">
+                            <small class="form-text">Guaranteed penalty free block weight.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">T_R (Ref Transaction)</label>
+                            <input type="number" id="t_r" class="form-control form-control-sm" value="3000">
+                            <small class="form-text">Reference tx weight for fee calculation.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">R_Base (Factor)</label>
+                            <input type="number" id="r_base" class="form-control form-control-sm" value="0.6" step="0.1">
+                            <small class="form-text">Base multiplier for penalty calculation.</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Median Algorithm Tuning</h6>
+
+                        <div class="mb-2">
+                            <label class="form-label">mid_100k (Long Term Index)</label>
+                            <input type="number" id="mid_100k" class="form-control form-control-sm" value="50000">
+                            <small class="form-text">Middle index for Long Term window.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">mid_100 (Short Term Index)</label>
+                            <input type="number" id="mid_100" class="form-control form-control-sm" value="50">
+                            <small class="form-text">Middle index for Short Term window.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">T_sim (Discretization)</label>
+                            <input type="number" id="t_sim" class="form-control form-control-sm" value="800">
+                            <small class="form-text">Tx size step (Bytes). Granularity of sim.</small>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <label class="form-label">M_L Growth Factor</label>
+                            <input type="number" id="ml_mult" class="form-control form-control-sm" value="2" step="0.1">
+                            <small class="form-text">M_L_weight = max(min(M_B, <b>X</b>·M_L), Z_M, M_L/<b>X</b>). New=2, Old=1.7</small>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <label class="form-label">M_N Cap Factor</label>
+                            <input type="number" id="mn_mult" class="form-control form-control-sm" value="50" step="1">
+                            <small class="form-text">M_N = min(M_S, <b>X</b>·M_L). Caps short-term effect.</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Scenario Settings</h6>
+
+                        <div class="mb-2">
+                            <label class="form-label">n (Number of Blocks)</label>
+                            <input type="number" id="n" class="form-control form-control-sm" value="20000">
+                            <small class="form-text">Total duration of the simulation.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Traffic Pattern (RUN_TYPE)</label>
+                            <select id="run_type" class="form-select form-select-sm">
+                                <option value="1">1: Linear Ramp</option>
+                                <option value="2">2: Fast Linear Ramp</option>
+                                <option value="3">3: Fast Parabolic Ramp</option>
+                                <option value="4">4: Fast Exponential Ramp</option>
+                                <option value="5">5: Maximum Flood</option>
+                                <option value="6" selected>6: Ramp To Sine Wave</option>
+                            </select>
+                            <small class="form-text">Shape of transaction influx.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Ramp Multiplier</label>
+                            <input type="number" id="ramp_multiplier" class="form-control form-control-sm" value="3" step="0.5">
+                            <small class="form-text">End volume / start volume (RUN_TYPE 6)</small>
+                        </div>
+
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="add_noise">
+                            <label class="form-check-label" style="font-size: 0.85rem">ADD_NOISE</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="users_pay_more">
+                            <label class="form-check-label" style="font-size: 0.85rem">USERS_PAY_MORE</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="large_sim_mode">
+                            <label class="form-check-label" style="font-size: 0.85rem">LARGE_SIMULATION_MODE</label>
+                        </div>
+                        
+                        <h6 class="text-uppercase text-muted fw-bold mt-3" style="font-size: 0.75rem;">Performance</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="fast_median" checked>
+                            <label class="form-check-label" style="font-size: 0.85rem">Fast Median (circular buffer)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exact_median">
+                            <label class="form-check-label" style="font-size: 0.85rem">Exact Median (sort every update)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="simple_blocks" checked>
+                            <label class="form-check-label" style="font-size: 0.85rem">Simple Block Building</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="use_workers">
+                            <label class="form-check-label" style="font-size: 0.85rem">Use Web Worker (no UI freeze)</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 bg-light p-3 rounded">
+                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Results Summary</h6>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="scientific_notation" onchange="updateStatsDisplay()">
+                            <label class="form-check-label" style="font-size: 0.8rem">Scientific Notation (4 sig figs)</label>
+                        </div>
+                        <div id="statsOutput" class="small">
+                            <p class="text-muted">Click "Run Simulation" to generate data.</p>
+                        </div>
+                        <div id="performanceOutput" class="small" style="display: none;">
+                            <hr>
+                            <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Performance Comparison</h6>
+                            <div id="performanceStats"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card chart-card-lg border-primary">
+                <div class="card-header bg-primary text-white py-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><strong>Combined Analysis</strong> (All Metrics)</span>
+                        <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#scaleControls">
+                            ⚙️ Scale Controls
+                        </button>
+                    </div>
+                    <div class="collapse" id="scaleControls">
+                        <div class="row g-2 bg-light rounded p-2 text-dark">
+                            <div class="col">
+                                <label class="form-label mb-0 small">Block Size</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">×</span>
+                                    <input type="number" id="scale_blocksize" class="form-control" value="1" step="0.1" onchange="updateCombinedChart()">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small">TxPool Size</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">×</span>
+                                    <input type="number" id="scale_txpool" class="form-control" value="1" step="0.1" onchange="updateCombinedChart()">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small">Volume</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">×</span>
+                                    <input type="number" id="scale_volume" class="form-control" value="1" step="0.1" onchange="updateCombinedChart()">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small">Fees</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">×</span>
+                                    <input type="number" id="scale_fees" class="form-control" value="1" step="0.1" onchange="updateCombinedChart()">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small">Penalty</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">×</span>
+                                    <input type="number" id="scale_penalty" class="form-control" value="1000" step="100" onchange="updateCombinedChart()">
+                                </div>
+                            </div>
+                            <div class="col-auto d-flex align-items-end">
+                                <button class="btn btn-sm btn-secondary" onclick="resetScales()">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartCombined"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Block Weight / Size</strong> (Bytes)</div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartBlockSize"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card chart-card">
+                <div class="card-header py-1 text-danger"><strong>TxPool (Mempool) Size</strong> (Bytes)</div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartMempool"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Broadcast Volume</strong> (Bytes/Block)</div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartVolume"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Total Fees</strong></div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartFees"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Penalty (P_B)</strong></div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartPenalty"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Long Term Median (M_L)</strong></div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartML"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Short Term Median (M_S)</strong></div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartMS"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Penalty Median (M_N)</strong> = min(M_S, X×M_L)</div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartMN"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import the WebAssembly module -->
+<script type="module">
+    // Import WebAssembly module
+    import init, { SimulationConfig, run_simulation, test_wasm, get_result_len, get_indices_ptr, get_m_b_ptr, get_m_l_ptr, get_m_s_ptr, get_m_n_ptr, get_input_vol_ptr, get_block_fee_ptr, get_penalty_ptr, get_mempool_ptr } from './wasm_sim.js';
+
+    // Global variables
+    let wasmModule = null;
+    let charts = {};
+    let performanceResults = {};
+
+    // ============================================
+    // NUMBER FORMATTING UTILITIES
+    // ============================================
+    
+    // Format number to scientific notation with specified significant figures
+    function toScientific(num, sigFigs = 4) {
+        if (num === 0) return '0';
+        if (!isFinite(num)) return num.toString();
+        
+        const absNum = Math.abs(num);
+        const exponent = Math.floor(Math.log10(absNum));
+        const mantissa = num / Math.pow(10, exponent);
+        
+        // Round mantissa to significant figures
+        const rounded = parseFloat(mantissa.toPrecision(sigFigs));
+        
+        if (exponent === 0) {
+            return rounded.toPrecision(sigFigs);
+        }
+        return `${rounded.toPrecision(sigFigs)}e${exponent >= 0 ? '+' : ''}${exponent}`;
+    }
+    
+    // Format bytes to human readable (kB, MB, GB)
+    function formatBytes(bytes, useScientific = false) {
+        if (useScientific) return toScientific(bytes, 4) + ' B';
+        
+        if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + ' GB';
+        if (bytes >= 1e6) return (bytes / 1e6).toFixed(2) + ' MB';
+        if (bytes >= 1e3) return (bytes / 1e3).toFixed(1) + ' kB';
+        return bytes.toFixed(0) + ' B';
+    }
+    
+    // Format number based on toggle setting
+    function formatNum(num, decimals = 2) {
+        const useScientific = document.getElementById('scientific_notation')?.checked;
+        if (useScientific) {
+            return toScientific(num, 4);
+        }
+        return num.toFixed(decimals);
+    }
+    
+    // Store last stats for re-display when toggle changes
+    let lastStatsData = null;
+    let lastStatsConfig = null;
+    let lastCalcTime = 0;
+    
+    function updateStatsDisplay() {
+        if (lastStatsData && lastStatsConfig) {
+            updateStatsOutput(lastStatsData, lastStatsConfig, lastCalcTime);
+        }
+    }
+    
+    function updateStatsOutput(data, config, calcTime) {
+        const sci = document.getElementById('scientific_notation')?.checked;
+        
+        const fmtBytes = (b) => sci ? toScientific(b, 4) + ' B' : formatBytes(b);
+        const fmtNum = (n, d=6) => sci ? toScientific(n, 4) : n.toFixed(d);
+        const fmtRatio = (n) => sci ? toScientific(n, 4) : n.toFixed(1);
+        
+        let statsHtml = `
+            <strong>Calculation Time:</strong> ${calcTime.toFixed(0)}ms<br>
+            <strong>Max Block Size:</strong> ${fmtBytes(data.stats.max_MB)}<br>
+            <strong>Max Mempool:</strong> ${fmtBytes(data.stats.max_Mempool)}<br>
+            <strong>Max Penalty:</strong> ${fmtNum(data.stats.max_Penalty)}<br>
+            <strong>Data Points:</strong> ${data.M_B.length}<br>
+            <hr class="my-1">
+            <strong>Final M_L:</strong> ${fmtBytes(data.M_L[data.M_L.length-1])}<br>
+            <strong>Final M_S:</strong> ${fmtBytes(data.M_S[data.M_S.length-1])}<br>
+            <strong>Final M_N:</strong> ${fmtBytes(data.M_N[data.M_N.length-1])}<br>
+            <strong>M_S/M_L ratio:</strong> ${fmtRatio(data.M_S[data.M_S.length-1]/data.M_L[data.M_L.length-1])}x (cap: ${config.mnMult}x)<br>
+            <hr class="my-1">
+            <strong>Total Fees Paid:</strong> ${fmtNum(data.stats.cumulative_fees)} XMR
+        `;
+        
+        document.getElementById('statsOutput').innerHTML = statsHtml;
+    }
+
+    function updatePerformanceOutput() {
+        const perfDiv = document.getElementById('performanceStats');
+        if (!performanceResults.wasm || !performanceResults.js) {
+            perfDiv.innerHTML = '<p class="text-muted">Run both engines to compare performance.</p>';
+            return;
+        }
+
+        const wasmSpeed = performanceResults.wasm.time;
+        const jsSpeed = performanceResults.js.time;
+        const speedup = (jsSpeed / wasmSpeed).toFixed(2);
+        
+        perfDiv.innerHTML = `
+            <div class="row">
+                <div class="col-6">
+                    <strong>WebAssembly (Rust):</strong><br>
+                    Time: ${wasmSpeed.toFixed(0)}ms<br>
+                    Memory: ${performanceResults.wasm.memory || 'N/A'} MB
+                </div>
+                <div class="col-6">
+                    <strong>JavaScript:</strong><br>
+                    Time: ${jsSpeed.toFixed(0)}ms<br>
+                    Memory: ${performanceResults.js.memory || 'N/A'} MB
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <strong>Performance Improvement:</strong> ${speedup}x faster<br>
+                <small>WebAssembly is ${(100 - (100/speedup)).toFixed(1)}% faster</small>
+            </div>
+        `;
+    }
+
+    // ============================================
+    // FAST MEDIAN TRACKER - O(1) amortized median
+    // Uses circular buffer + periodic sorting
+    // ============================================
+    class FastMedianTracker {
+        constructor(size, initialValue, exactMedian = false) {
+            this.size = size;
+            this.buffer = new Float64Array(size).fill(initialValue);
+            this.sortedBuffer = new Float64Array(size).fill(initialValue);
+            this.head = 0;  // Points to oldest element
+            this.exactMedian = exactMedian;
+            
+            // Sort interval depends on exact_median flag
+            if (exactMedian) {
+                this.sortInterval = 1;  // Sort every update (matches Python bisect behavior)
+            } else {
+                this.sortInterval = Math.max(100, Math.floor(size / 100));  // Fast mode: sort every N updates
+            }
+            
+            this.updatesSinceSort = 0;
+            this.midIdx = Math.floor(size / 2);
+        }
+        
+        update(newValue) {
+            // Replace oldest value with new value (circular buffer)
+            this.buffer[this.head] = newValue;
+            this.head = (this.head + 1) % this.size;
+            this.updatesSinceSort++;
+            
+            // Periodically re-sort for accurate median
+            if (this.updatesSinceSort >= this.sortInterval) {
+                this.sortedBuffer.set(this.buffer);
+                this.sortedBuffer.sort();
+                this.updatesSinceSort = 0;
+            }
+        }
+        
+        getMedian() {
+            // Return approximate median from last sort
+            // For even-sized arrays, average the two middle values
+            return (this.sortedBuffer[this.midIdx] + this.sortedBuffer[this.size - 1 - this.midIdx]) / 2;
+        }
+        
+        // Force a re-sort (useful at end of simulation for accurate final values)
+        forceSort() {
+            this.sortedBuffer.set(this.buffer);
+            this.sortedBuffer.sort();
+            this.updatesSinceSort = 0;
+        }
+    }
+
+    // Box-Muller transform for normal distribution (matches numpy.random.normal)
+    function normalRandom(mean, stdDev) {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        return mean + stdDev * num;
+    }
+
+    
+    function updateCombinedChart() {
+        if (!rawSimData) return;
+        
+        const scales = {
+            blockSize: parseFloat(document.getElementById('scale_blocksize').value) || 1,
+            txPool: parseFloat(document.getElementById('scale_txpool').value) || 1,
+            volume: parseFloat(document.getElementById('scale_volume').value) || 1,
+            fees: parseFloat(document.getElementById('scale_fees').value) || 1,
+            penalty: parseFloat(document.getElementById('scale_penalty').value) || 1000
+        };
+        
+        // Update data with scaling
+        charts.combined.data.datasets[0].data = rawSimData.M_B.map(v => v * scales.blockSize);
+        charts.combined.data.datasets[1].data = rawSimData.mempool_size.map(v => v * scales.txPool);
+        charts.combined.data.datasets[2].data = rawSimData.input_volume.map(v => v * scales.volume);
+        charts.combined.data.datasets[3].data = rawSimData.block_fee.map(v => v * scales.fees);
+        charts.combined.data.datasets[4].data = rawSimData.penalty.map(v => v * scales.penalty);
+        
+        // Update labels to show scale factors
+        charts.combined.data.datasets[0].label = `Block Size (×${scales.blockSize})`;
+        charts.combined.data.datasets[1].label = `TxPool Size (×${scales.txPool})`;
+        charts.combined.data.datasets[2].label = `Volume (×${scales.volume})`;
+        charts.combined.data.datasets[3].label = `Fees (×${scales.fees})`;
+        charts.combined.data.datasets[4].label = `Penalty (×${scales.penalty})`;
+        
+        charts.combined.update();
+    }
+    
+    function resetScales() {
+        document.getElementById('scale_blocksize').value = 1;
+        document.getElementById('scale_txpool').value = 1;
+        document.getElementById('scale_volume').value = 1;
+        document.getElementById('scale_fees').value = 1;
+        document.getElementById('scale_penalty').value = 1000;
+        updateCombinedChart();
+    }
+
+    // --- CHARTS CONFIG ---
+    function initCharts() {
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            elements: { point: { radius: 0, hitRadius: 10, hoverRadius: 4 } },
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+            scales: { 
+                x: { display: true, ticks: { maxTicksLimit: 10 } },
+                y: { beginAtZero: true }
+            }
+        };
+
+        const createChart = (id, label, color) => {
+            return new Chart(document.getElementById(id).getContext('2d'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: label, data: [], borderColor: color, borderWidth: 1.5, fill: false }] },
+                options: JSON.parse(JSON.stringify(commonOptions))
+            });
+        };
+
+        // Initialize Single Charts
+        charts.blockSize = createChart('chartBlockSize', 'Block Size', '#0dcaf0');
+        charts.mempool = createChart('chartMempool', 'TxPool Size', '#fd7e14');
+        charts.volume = createChart('chartVolume', 'Broadcast Vol', '#198754');
+        charts.fees = createChart('chartFees', 'Total Fees', '#0d6efd');
+        charts.penalty = createChart('chartPenalty', 'Penalty', '#dc3545');
+        charts.ml = createChart('chartML', 'M_L', '#6f42c1');
+        charts.ms = createChart('chartMS', 'M_S', '#20c997');
+        charts.mn = createChart('chartMN', 'M_N', '#e83e8c');
+
+        // Initialize Combined Chart (Dual Axis)
+        const ctxCombined = document.getElementById('chartCombined').getContext('2d');
+        charts.combined = new Chart(ctxCombined, {
+            type: 'line',
+            data: { 
+                labels: [], 
+                datasets: [
+                    { label: 'Block Size (×1)', borderColor: '#0dcaf0', borderWidth: 1.5, data: [], yAxisID: 'y' },
+                    { label: 'TxPool Size (×1)', borderColor: '#fd7e14', borderWidth: 1.5, data: [], yAxisID: 'y' },
+                    { label: 'Volume (×1)', borderColor: '#198754', borderWidth: 1.5, data: [], yAxisID: 'y' },
+                    { label: 'Fees (×1)', borderColor: '#0d6efd', borderWidth: 1.5, data: [], yAxisID: 'y1' },
+                    { label: 'Penalty (×1000)', borderColor: '#dc3545', borderWidth: 1.5, data: [], yAxisID: 'y1' }
+                ] 
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                elements: { point: { radius: 0, hitRadius: 10 } },
+                plugins: { 
+                    legend: { display: true, position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { display: true, ticks: { maxTicksLimit: 15 } },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Bytes (Size/Vol)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Ratio / Atomic Units' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ============================================
+    // WEBASSEMBLY SIMULATION FUNCTIONS
+    // ============================================
+    
+    async function runWasmSimulation(config) {
+        if (!wasmModule) {
+            throw new Error('WASM module not loaded');
+        }
+
+        // WASM doesn't return detailed chart data yet, so use JS simulation for visualization
+        console.log('Running JavaScript simulation for chart data (WASM optimization pending)');
+        return runJsSimulation(config);
+    }
+
+    // ============================================
+    // JAVASCRIPT SIMULATION FUNCTIONS (from original)
+    // ============================================
+    
+    function runJsSimulation(cfg) {
+        const startTime = performance.now();
+        const data = runSimulationLogic(cfg);
+        const endTime = performance.now();
+        
+        return {
+            data,
+            time: endTime - startTime,
+            memory: 'N/A'
+        };
+    }
+
+    // --- CORE SIMULATION LOGIC (CORRECTED) ---
+    function runSimulationLogic(cfg) {
+        // Unpacking Configuration
+        const n = cfg.n;
+        const Z_M = cfg.z_m;
+        const T_R = cfg.t_r;
+        const R_Base = cfg.r_base;
+        let T_sim = cfg.t_sim;
+        const LARGE_SIMULATION_MODE = cfg.largeSimMode;
+        const FAST_MEDIAN = cfg.fastMedian;
+        const SIMPLE_BLOCKS = cfg.simpleBlocks;
+        
+        // Multiplier for M_L_weight calculation
+        // NEW consensus (2021 proposal): 2x
+        // OLD consensus: 1.7x (some versions used 1.4x)
+        const ML_MULT = cfg.mlMult;
+        
+        // Multiplier for M_N cap: M_N = min(M_S, MN_MULT * M_L)
+        // Default is 50x per the Monero spec
+        const MN_MULT = cfg.mnMult;
+        
+        // Window Setup
+        const mid_100k = cfg.mid_100k;
+        const mid_100 = cfg.mid_100;
+        const len_L = mid_100k * 2;  // 100000
+        const len_S = mid_100 * 2;   // 100
+
+        // Initialization - matches Python exactly
+        let M_B = 0;
+        let F_T = 0;
+        let M_L_prev = cfg.steadyState;
+        
+        // Initialize median trackers (fast or standard)
+        let M_L_list, sorted_M_L_list, M_S_list, sorted_M_S_list;
+        let fastML, fastMS;
+        
+        if (FAST_MEDIAN) {
+            // Use optimized circular buffer median tracker
+            fastML = new FastMedianTracker(len_L, cfg.steadyState, cfg.exactMedian);
+            fastMS = new FastMedianTracker(len_S, cfg.steadyState, cfg.exactMedian);
+        } else {
+            // Standard arrays (matches Python exactly)
+            M_L_list = new Array(len_L).fill(cfg.steadyState);
+            sorted_M_L_list = [...M_L_list].sort((a, b) => a - b);
+            M_S_list = new Array(len_S).fill(cfg.steadyState);
+            sorted_M_S_list = [...M_S_list].sort((a, b) => a - b);
+        }
+        
+        let mempool = [0, 0];
+        let fees = [0, 0];
+        let broadcast = [0, 0];
+        let blockfilled = [0, 0];
+        let percent_response = 0;
+        
+        // LARGE_SIMULATION_MODE variables
+        let T_sim_counter = 0;
+        let T_sim_reset_counter = 0;
+
+        // Data Storage - expanded to match Python archives
+        let results = { 
+            M_B: [], 
+            M_L: [],
+            M_S: [],
+            M_N: [],
+            M_L_weight: [],
+            M_S_weight: [],
+            input_volume: [], 
+            block_fee: [], 
+            penalty: [], 
+            mempool_size: [],
+            F_T: [],
+            f_I: [],
+            B: [],
+            T_sim: [],
+            indices: [] 
+        };
+        
+        let M_B_archive = [];  // Full archive for LARGE_SIMULATION_MODE checks
+        
+        let max_MB = 0, max_Penalty = 0, max_Mempool = 0;
+        let cumulative_fees = 0;  // Total fees paid across all blocks
+        let sampleRate = Math.max(1, Math.ceil(n / 1000));
+
+        for (let i = 0; i < n; i++) {
+            
+            // ============================================
+            // 1. MEDIAN CALCULATIONS (matches Python order)
+            // ============================================
+            
+            let M_L, M_S;
+            
+            if (FAST_MEDIAN) {
+                // Use fast median tracker
+                M_L = fastML.getMedian();
+                M_S = fastMS.getMedian();
+            } else {
+                // Standard calculation
+                // M_L = median of sorted_M_L_list
+                // Python: M_L = (sorted_M_L_list[mid_100k] + sorted_M_L_list[~mid_100k]) / 2
+                let idx_L1 = mid_100k;
+                let idx_L2 = sorted_M_L_list.length - 1 - mid_100k;
+                M_L = (sorted_M_L_list[idx_L1] + sorted_M_L_list[idx_L2]) / 2;
+                
+                // M_S = median of sorted_M_S_list
+                let idx_S1 = mid_100;
+                let idx_S2 = sorted_M_S_list.length - 1 - mid_100;
+                M_S = (sorted_M_S_list[idx_S1] + sorted_M_S_list[idx_S2]) / 2;
+            }
+            
+            // M_L_weight: value to add to M_L_list
+            // PDF NEW: M_L = median of max(min(M_B, 2*M_L), Z_M, M_L/2)
+            // PDF OLD: M_L = median of max(min(M_B, 1.7*M_L), Z_M, M_L/1.7)
+            let M_L_weight = Math.max(Math.min(M_B, ML_MULT * M_L_prev), Z_M, M_L_prev / ML_MULT);
+            
+            // M_S_weight = max(M_B, M_L) - uses previous M_B
+            let M_S_weight = Math.max(M_B, M_L);
+            
+            // M_N = min(M_S, MN_MULT * M_L) - caps short-term effect
+            let M_N = Math.min(M_S, MN_MULT * M_L);
+            
+            // M_B_max = 2 * M_N
+            let M_B_max = 2 * M_N;
+            
+            // Fee calculations
+            let f_R = R_Base * T_R / (M_L * M_L);
+            let f_I = 0.95 * f_R;
+            if (f_I < 1e-12) f_I = 1e-12;
+            
+            // ============================================
+            // 2. LARGE_SIMULATION_MODE T_sim scaling
+            // ============================================
+            if (LARGE_SIMULATION_MODE) {
+                let scale_setting = Math.floor(M_S / Z_M);
+                
+                if (T_sim <= scale_setting * 800 / 2) {
+                    T_sim_counter++;
+                    if (T_sim_counter > 500) {
+                        for (let j = 0; j < mempool.length; j++) {
+                            mempool[j] = Math.floor(mempool[j] / 2);
+                        }
+                        T_sim *= 2;
+                        T_sim_counter = 0;
+                    }
+                }
+                
+                if (T_sim >= scale_setting * 800 * 2) {
+                    T_sim_counter++;
+                    if (T_sim_counter > 500) {
+                        for (let j = 0; j < mempool.length; j++) {
+                            mempool[j] *= 2;
+                        }
+                        T_sim /= 2;
+                        T_sim_counter = 0;
+                    }
+                }
+                
+                if (i > 100) {
+                    if (M_B_archive[i-1] === M_B_archive[i-60]) {
+                        T_sim_reset_counter++;
+                        if (T_sim_reset_counter > 20 && T_sim > 800 && M_S < M_N + T_sim) {
+                            for (let j = 0; j < mempool.length; j++) {
+                                mempool[j] *= 2;
+                            }
+                            T_sim /= 2;
+                            T_sim_reset_counter = 0;
+                        }
+                    }
+                }
+            }
+            
+            // ============================================
+            // 3. BROADCAST NEW TRANSACTIONS
+            // ============================================
+            blockfilled[0] = 0;
+            blockfilled[1] = 0;
+            broadcast[0] = 0;
+            broadcast[1] = 0;
+            
+            let vol = 0;
+            
+            if (cfg.runType === 1) {
+                // Linear Ramp
+                vol = Z_M + 100 * i;
+            } else if (cfg.runType === 2) {
+                // Fast Linear Ramp
+                vol = Z_M + 800 * i;
+            } else if (cfg.runType === 3) {
+                // Fast Parabolic Ramp
+                vol = Math.pow(316 + (i / 15), 2);
+            } else if (cfg.runType === 4) {
+                // Fast Exponential Ramp
+                vol = Z_M * (Math.pow(1.6, 9.8 + (i / 50000)) - 99.75);
+            } else if (cfg.runType === 5) {
+                // Maximum flood
+                vol = M_B_max;
+            } else if (cfg.runType === 6) {
+                // Configurable Transaction Ramp To Sine
+                let start_val = 300000;
+                let ramp_multiplier = cfg.rampMultiplier;
+                let ramp_delay = 10;
+                let ramp_days = 14;
+                let ramp_time = ramp_days * 720;
+                
+                if (i <= ramp_delay) {
+                    vol = start_val;
+                } else if (i <= ramp_delay + ramp_time) {
+                    vol = start_val + Math.floor((ramp_multiplier - 1) * start_val / ramp_time) * (i - ramp_delay);
+                } else {
+                    vol = ramp_multiplier * start_val + 220 * Math.sin(i / 802) * 800;
+                }
+            }
+            
+            broadcast[1] = Math.floor(vol / T_sim);
+            
+            // Store input volume before noise
+            let input_volume = broadcast[1] * T_sim;
+            
+            // ADD_NOISE
+            if (cfg.addNoise) {
+                // Python: noise = 0.2 * np.random.normal(0, broadcast[1], 1)
+                let noise = 0.2 * normalRandom(0, broadcast[1]);
+                broadcast[1] += Math.floor(noise);
+                if (broadcast[1] <= 0) broadcast[1] = 1;
+            }
+            
+            // USERS_PAY_MORE
+            if (cfg.usersPayMore) {
+                let previous_percent_response = percent_response;
+                let percent_response_calc = Math.floor((mempool[1] / (3 * broadcast[1])) * 100);
+                if (!isFinite(percent_response_calc)) percent_response_calc = 0;
+                percent_response = Math.floor(previous_percent_response + 0.1 * (percent_response_calc - previous_percent_response));
+                
+                if (percent_response > 100) percent_response = 100;
+                if (percent_response > 0 && percent_response <= 100) {
+                    broadcast[0] = Math.floor((broadcast[1] * percent_response) / 100);
+                    broadcast[1] = Math.floor((broadcast[1] * (100 - percent_response)) / 100);
+                }
+            }
+            
+            // Update mempool with broadcast
+            for (let j = 0; j < mempool.length; j++) {
+                mempool[j] += broadcast[j];
+            }
+            
+            // Define fees paid for each tx fee level
+            fees[1] = f_R * T_sim;  // lowest fee
+            fees[0] = 16 * fees[1]; // medium fee
+            
+            // ============================================
+            // 4. BUILD NEXT BLOCK
+            // ============================================
+            let block_fee_total = 0;
+            
+            if (SIMPLE_BLOCKS) {
+                // SIMPLE MODE: Like Python v2 - just fill block from mempool
+                // Much faster, skips per-tx fee calculations
+                let mempool_total_bytes = (mempool[0] + mempool[1]) * T_sim;
+                M_B = Math.min(M_B_max, mempool_total_bytes);
+                
+                // Calculate approximate fees (simplified)
+                let B_final_approx = (M_B / M_N) - 1;
+                if (B_final_approx > 0) {
+                    // Approximate total fee as penalty that would be incurred
+                    block_fee_total = R_Base * B_final_approx * B_final_approx;
+                }
+                
+                // Remove from mempool (simplified - just reduce by bytes used)
+                let bytes_to_remove = M_B;
+                let tx_to_remove = Math.ceil(bytes_to_remove / T_sim);
+                // Remove from high-fee first, then low-fee
+                let remove_from_high = Math.min(mempool[0], tx_to_remove);
+                mempool[0] -= remove_from_high;
+                tx_to_remove -= remove_from_high;
+                mempool[1] -= Math.min(mempool[1], tx_to_remove);
+                if (mempool[0] < 0) mempool[0] = 0;
+                if (mempool[1] < 0) mempool[1] = 0;
+                
+                F_T = block_fee_total;  // Approximate
+                
+            } else {
+                // DETAILED MODE: Original per-tx fee calculation
+                M_B = 0;  // Begin building from empty block
+                let fee_set = [];
+                let break_flag = false;
+                
+                for (let k = 0; k < mempool.length; k++) {
+                    if (break_flag) break;
+                    
+                    for (let l = 0; l < mempool[k]; l++) {
+                        // Check if we are allowed to grow the block
+                        if (M_B >= M_B_max) {
+                            blockfilled[0] = k;
+                            blockfilled[1] = l;
+                            break_flag = true;
+                            break;
+                        }
+                        
+                        // Check necessary fees to expand block to new size
+                        let B = (M_B / M_N) - 1;
+                        let T_T = T_sim;
+                        if (T_T > M_B - M_N && M_B - M_N > 0) {
+                            T_T = M_B - M_N;
+                        }
+                        let B_T = T_T / M_N;
+                        F_T = R_Base * (2 * B * B_T + B_T * B_T);
+                        if (B + B_T <= 0) F_T = 0;
+                        
+                        fee_set.push(F_T);
+                        
+                        if (fees[k] < F_T) {
+                            blockfilled[0] = k;
+                            blockfilled[1] = l;
+                            break_flag = true;
+                            break;
+                        }
+                        
+                        M_B += T_sim;
+                    }
+                }
+                
+                // Handle case where all tx were processed
+                if (blockfilled[0] === 0 && blockfilled[1] === 0) {
+                    if (mempool[1] !== 0) {
+                        blockfilled[0] = 1;
+                        blockfilled[1] = mempool[1];
+                    } else if (mempool[0] !== 0) {
+                        blockfilled[0] = 0;
+                        blockfilled[1] = mempool[0];
+                    }
+                }
+                
+                // Calculate fees paid to create block
+                // Python: block_fee_total += (blockfilled[1] - 1) * fees[blockfilled[0]]
+                for (let k = 0; k < blockfilled[0]; k++) {
+                    block_fee_total += mempool[k] * fees[k];
+                }
+                block_fee_total += (blockfilled[1] - 1) * fees[blockfilled[0]];  // FIXED: -1
+                
+                // Remove included tx from mempool
+                for (let k = 0; k < blockfilled[0]; k++) {
+                    mempool[k] = 0;
+                }
+                mempool[blockfilled[0]] -= blockfilled[1];
+                if (mempool[blockfilled[0]] < 0) mempool[blockfilled[0]] = 0;
+            }
+            
+            // Add to cumulative total
+            cumulative_fees += block_fee_total;
+            
+            // ============================================
+            // 5. PENALTY CALCULATION
+            // ============================================
+            let B_final = (M_B / M_N) - 1;
+            let P_B = R_Base * (B_final * B_final);
+            if (B_final <= 0) P_B = 0;
+            
+            // ============================================
+            // 6. UPDATE MEDIAN LISTS
+            // ============================================
+            if (FAST_MEDIAN) {
+                // Fast mode: use circular buffer
+                fastML.update(M_L_weight);
+                fastMS.update(M_S_weight);
+            } else {
+                // Standard mode: maintain sorted lists
+                // Update Long Term Median Lists
+                let old_L = M_L_list.shift();
+                removeValue(sorted_M_L_list, old_L);
+                M_L_list.push(M_L_weight);
+                insort(sorted_M_L_list, M_L_weight);
+                
+                // Update Short Term Median Lists
+                let old_S = M_S_list.shift();
+                removeValue(sorted_M_S_list, old_S);
+                M_S_list.push(M_S_weight);
+                insort(sorted_M_S_list, M_S_weight);
+            }
+            
+            // Store M_L for calculation in next block
+            M_L_prev = M_L;
+            
+            // Store M_B for archive (needed for LARGE_SIMULATION_MODE)
+            M_B_archive.push(M_B);
+            
+            // ============================================
+            // 7. STORE DATA FOR PLOTTING
+            // ============================================
+            let mempool_size_bytes = (mempool[0] + mempool[1]) * T_sim;
+            if (mempool_size_bytes > max_Mempool) max_Mempool = mempool_size_bytes;
+            if (M_B > max_MB) max_MB = M_B;
+            if (P_B > max_Penalty) max_Penalty = P_B;
+            
+            // Sample data points for charting
+            if (i % sampleRate === 0) {
+                results.indices.push(i);
+                results.M_B.push(M_B);
+                results.M_L.push(M_L);
+                results.M_S.push(M_S);
+                results.M_N.push(M_N);
+                results.M_L_weight.push(M_L_weight);
+                results.M_S_weight.push(M_S_weight);
+                results.input_volume.push(input_volume);
+                results.block_fee.push(block_fee_total);
+                results.penalty.push(P_B);
+                results.mempool_size.push(mempool_size_bytes);
+                results.F_T.push(F_T);
+                results.f_I.push(f_I);
+                results.B.push(B_final);
+                results.T_sim.push(T_sim);
+            }
+        }
+        
+        // Force final sort for accurate end values in fast median mode
+        if (FAST_MEDIAN) {
+            fastML.forceSort();
+            fastMS.forceSort();
+        }
+
+        results.stats = { max_MB, max_Penalty, max_Mempool, cumulative_fees };
+        return results;
+    }
+
+    // Binary Search for inserting into sorted arrays
+    function binarySearch(arr, val) {
+        let start = 0, end = arr.length - 1;
+        while (start <= end) {
+            let mid = Math.floor((start + end) / 2);
+            if (arr[mid] === val) return mid;
+            if (arr[mid] < val) start = mid + 1;
+            else end = mid - 1;
+        }
+        return start;
+    }
+    
+    function insort(arr, val) {
+        arr.splice(binarySearch(arr, val), 0, val);
+    }
+    
+    function removeValue(arr, val) {
+        let idx = binarySearch(arr, val);
+        // Handle case where binary search finds insertion point, not exact match
+        if (idx < arr.length && arr[idx] === val) {
+            arr.splice(idx, 1);
+        } else {
+            // Fallback to indexOf for edge cases
+            let exactIdx = arr.indexOf(val);
+            if (exactIdx > -1) arr.splice(exactIdx, 1);
+        }
+    }
+
+    // --- UI INTERACTION ---
+    
+    // Global variable to store raw simulation data for rescaling
+    let rawSimData = null;
+    
+    async function startSimulation() {
+        const compareMode = document.getElementById('compareMode').checked;
+        const engineWasm = document.getElementById('engineWasm').checked;
+        const engineJs = document.getElementById('engineJs').checked;
+        
+        document.getElementById('loadingOverlay').style.display = 'flex';
+        document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('performanceBadge').style.display = compareMode ? 'inline-block' : 'none';
+        document.getElementById('performanceOutput').style.display = compareMode ? 'block' : 'none';
+        
+        const getVal = (id) => parseFloat(document.getElementById(id).value);
+        const getInt = (id) => parseInt(document.getElementById(id).value);
+        
+        const config = {
+            n: getInt('n'),
+            steadyState: getInt('steady_state'),
+            z_m: getInt('z_m'),
+            t_r: getInt('t_r'),
+            r_base: getVal('r_base'),
+            mid_100k: getInt('mid_100k'),
+            mid_100: getInt('mid_100'),
+            t_sim: getInt('t_sim'),
+            runType: getInt('run_type'),
+            rampMultiplier: getVal('ramp_multiplier'),
+            addNoise: document.getElementById('add_noise').checked,
+            usersPayMore: document.getElementById('users_pay_more').checked,
+            largeSimMode: document.getElementById('large_sim_mode').checked,
+            mlMult: getVal('ml_mult'),
+            mnMult: getVal('mn_mult'),
+            fastMedian: document.getElementById('fast_median').checked,
+            exactMedian: document.getElementById('exact_median').checked,
+            simpleBlocks: document.getElementById('simple_blocks').checked,
+            useWorkers: document.getElementById('use_workers').checked
+        };
+        
+        // Clear previous results
+        performanceResults = {};
+        
+        try {
+            if (compareMode || engineWasm) {
+                updateProgress('Initializing WebAssembly engine...', 0);
+                performanceResults.wasm = await runWasmSimulation(config);
+                updateProgress('WebAssembly simulation complete!', 100);
+            }
+            
+            if (compareMode || engineJs) {
+                updateProgress('Running JavaScript engine...', 0);
+                performanceResults.js = runJsSimulation(config);
+                updateProgress('JavaScript simulation complete!', 100);
+            }
+            
+            // Display results
+            if (engineWasm && performanceResults.wasm) {
+                displayResults(performanceResults.wasm.data, config, performanceResults.wasm.time);
+            }
+            
+            if (engineJs && performanceResults.js) {
+                if (compareMode) {
+                    // In compare mode, show the faster engine's results
+                    const fasterResult = performanceResults.wasm.time < performanceResults.js.time ? performanceResults.wasm : performanceResults.js;
+                    displayResults(fasterResult.data, config, fasterResult.time);
+                } else {
+                    displayResults(performanceResults.js.data, config, performanceResults.js.time);
+                }
+            }
+            
+            if (compareMode) {
+                updatePerformanceOutput();
+            }
+            
+        } catch (error) {
+            console.error('Simulation error:', error);
+            updateProgress('Error: ' + error.message, 0);
+        } finally {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }, 500);
+        }
+    }
+    
+    function updateProgress(message, progress) {
+        document.getElementById('progressText').textContent = message;
+        document.getElementById('progressBar').style.width = progress + '%';
+        document.getElementById('progressBar').textContent = Math.round(progress) + '%';
+    }
+    
+    function displayResults(data, config, calcTime) {
+        // Store raw data for rescaling
+        rawSimData = data;
+        
+        // Store for stats re-display when toggle changes
+        lastStatsData = data;
+        lastStatsConfig = config;
+        lastCalcTime = calcTime;
+
+        // Update Single Charts
+        updateChart(charts.blockSize, data.indices, data.M_B);
+        updateChart(charts.mempool, data.indices, data.mempool_size);
+        updateChart(charts.volume, data.indices, data.input_volume);
+        updateChart(charts.fees, data.indices, data.block_fee);
+        updateChart(charts.penalty, data.indices, data.penalty);
+        updateChart(charts.ml, data.indices, data.M_L);
+        updateChart(charts.ms, data.indices, data.M_S);
+        updateChart(charts.mn, data.indices, data.M_N);
+
+        // Update Combined Chart with current scale settings
+        charts.combined.data.labels = data.indices;
+        updateCombinedChart();
+
+        // Update stats output using the formatting function
+        updateStatsOutput(data, config, calcTime);
+    }
+
+    function updateChart(chart, labels, data) {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+    }
+
+    // Initialize WebAssembly and start the application
+    async function main() {
+        try {
+            // Initialize WebAssembly module
+            wasmModule = await init();
+            console.log('WebAssembly module loaded successfully');
+            
+            // Test WASM functionality
+            const testResult = test_wasm();
+            console.log('WASM test result:', testResult);
+            
+            // Initialize charts
+            initCharts();
+            
+            // Hide loading overlay if it was shown during initialization
+            document.getElementById('loadingOverlay').style.display = 'none';
+            
+        } catch (error) {
+            console.error('Failed to load WebAssembly module:', error);
+            document.getElementById('loadingOverlay').style.display = 'none';
+            
+            // Show error message to user
+            alert('Failed to load WebAssembly module. Falling back to JavaScript-only mode. Error: ' + error.message);
+            
+            // Disable WASM option
+            document.getElementById('engineWasm').disabled = true;
+            document.getElementById('compareMode').disabled = true;
+        }
+    }
+
+    // Start the application
+    window.onload = main;
+    
+    // Make startSimulation available globally
+    window.startSimulation = startSimulation;
+    window.updateStatsDisplay = updateStatsDisplay;
+    window.updateCombinedChart = updateCombinedChart;
+    window.resetScales = resetScales;
+
+</script>
+</body>
+</html>
