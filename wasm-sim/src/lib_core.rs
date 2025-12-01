@@ -413,7 +413,7 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
             m_l_data.push(m_l);
             m_s_data.push(m_s);
             m_n_data.push(m_n);
-            input_volume_data.push(broadcast[1] * t_sim);
+            input_volume_data.push((broadcast[0] + broadcast[1]) * t_sim);
             block_fee_data.push(block_fee_total);
             penalty_data.push(p_b);
             mempool_size_data.push(mempool_size_bytes);
