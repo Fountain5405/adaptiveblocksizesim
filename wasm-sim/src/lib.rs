@@ -44,6 +44,11 @@ pub struct SimulationConfig {
     pub simple_blocks: bool,
     pub large_sim_mode: bool,
     pub exact_median: bool,
+    pub max_blocksize: i64,
+    pub max_blocksize_growth_rate: f64,
+    pub use_long_term_median_cap: bool,
+    pub sanity_start_weight: i64,
+    pub sanity_start_block: u32,
 }
 
 #[wasm_bindgen]
@@ -67,6 +72,11 @@ impl SimulationConfig {
         simple_blocks: bool,
         large_sim_mode: bool,
         exact_median: bool,
+        max_blocksize: i64,
+        max_blocksize_growth_rate: f64,
+        use_long_term_median_cap: bool,
+        sanity_start_weight: i64,
+        sanity_start_block: u32,
     ) -> SimulationConfig {
         SimulationConfig {
             n,
@@ -86,6 +96,11 @@ impl SimulationConfig {
             simple_blocks,
             large_sim_mode,
             exact_median,
+            max_blocksize,
+            max_blocksize_growth_rate,
+            use_long_term_median_cap,
+            sanity_start_weight,
+            sanity_start_block,
         }
     }
 }
@@ -110,6 +125,11 @@ impl From<SimulationConfig> for CoreConfig {
             simple_blocks: config.simple_blocks,
             large_sim_mode: config.large_sim_mode,
             exact_median: config.exact_median,
+            max_blocksize: config.max_blocksize,
+            max_blocksize_growth_rate: config.max_blocksize_growth_rate,
+            use_long_term_median_cap: config.use_long_term_median_cap,
+            sanity_start_weight: config.sanity_start_weight,
+            sanity_start_block: config.sanity_start_block,
         }
     }
 }

@@ -12,9 +12,9 @@ fn main() {
     // Default configuration
     let mut config = SimulationConfig {
         n: 20000,
-        steady_state: 300000,
-        z_m: 300000,
-        t_r: 3000,
+        steady_state: 1000000,  // NEW: 1MB (was 300kB)
+        z_m: 1000000,  // NEW: 1MB (was 300kB)
+        t_r: 10000,  // NEW: 10kB (was 3kB)
         r_base: 0.6,
         mid_100k: 50000,
         mid_100: 50,
@@ -28,6 +28,11 @@ fn main() {
         simple_blocks: false,  // Use detailed mode for comparison
         large_sim_mode: false,
         exact_median: false,
+        max_blocksize: 10_000_000,  // 10 MB default
+        max_blocksize_growth_rate: 0.0,  // 0% growth by default
+        use_long_term_median_cap: true,  // Use traditional M_N cap by default
+        sanity_start_weight: 10_000_000,  // NEW: 10MB sanity start weight
+        sanity_start_block: 0,  // NEW: Start from block 0
     };
     
     let mut json_output = false;
@@ -57,6 +62,24 @@ fn main() {
             "--exact-median" => {
                 if i + 1 < args.len() {
                     config.exact_median = args[i + 1].parse().unwrap_or(0) != 0;
+                    i += 1;
+                }
+            }
+            "--max-blocksize" => {
+                if i + 1 < args.len() {
+                    config.max_blocksize = args[i + 1].parse().unwrap_or(10_000_000);
+                    i += 1;
+                }
+            }
+            "--max-blocksize-growth-rate" => {
+                if i + 1 < args.len() {
+                    config.max_blocksize_growth_rate = args[i + 1].parse().unwrap_or(0.0);
+                    i += 1;
+                }
+            }
+            "--use-long-term-median-cap" => {
+                if i + 1 < args.len() {
+                    config.use_long_term_median_cap = args[i + 1].parse().unwrap_or(1) != 0;
                     i += 1;
                 }
             }
@@ -136,6 +159,9 @@ fn main() {
         println!("  Users Pay More: {}", config.users_pay_more);
         println!("  Large Sim Mode: {}", config.large_sim_mode);
         println!("  Exact Median: {}", config.exact_median);
+        println!("  Max Blocksize: {} bytes", config.max_blocksize);
+        println!("  Max Blocksize Growth Rate: {:.2}% per year", config.max_blocksize_growth_rate * 100.0);
+        println!("  Use Long Term Median Cap: {}", config.use_long_term_median_cap);
         println!();
         
         println!("Running simulation...");

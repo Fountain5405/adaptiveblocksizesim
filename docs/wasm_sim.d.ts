@@ -4,7 +4,7 @@
 export class SimulationConfig {
   free(): void;
   [Symbol.dispose](): void;
-  constructor(n: number, steady_state: bigint, z_m: bigint, t_r: bigint, r_base: number, mid_100k: number, mid_100: number, t_sim: bigint, run_type: number, ramp_multiplier: number, ml_mult: number, mn_mult: number, add_noise: boolean, users_pay_more: boolean, simple_blocks: boolean, large_sim_mode: boolean, exact_median: boolean);
+  constructor(n: number, steady_state: bigint, z_m: bigint, t_r: bigint, r_base: number, mid_100k: number, mid_100: number, t_sim: bigint, run_type: number, ramp_multiplier: number, ml_mult: number, mn_mult: number, add_noise: boolean, users_pay_more: boolean, simple_blocks: boolean, large_sim_mode: boolean, exact_median: boolean, max_blocksize: bigint, max_blocksize_growth_rate: number, use_long_term_median_cap: boolean, sanity_start_weight: bigint, sanity_start_block: number);
   n: number;
   steady_state: bigint;
   z_m: bigint;
@@ -22,6 +22,11 @@ export class SimulationConfig {
   simple_blocks: boolean;
   large_sim_mode: boolean;
   exact_median: boolean;
+  max_blocksize: bigint;
+  max_blocksize_growth_rate: number;
+  use_long_term_median_cap: boolean;
+  sanity_start_weight: bigint;
+  sanity_start_block: number;
 }
 
 export class SimulationResults {
@@ -120,7 +125,17 @@ export interface InitOutput {
   readonly __wbg_set_simulationconfig_large_sim_mode: (a: number, b: number) => void;
   readonly __wbg_get_simulationconfig_exact_median: (a: number) => number;
   readonly __wbg_set_simulationconfig_exact_median: (a: number, b: number) => void;
-  readonly simulationconfig_new: (a: number, b: bigint, c: bigint, d: bigint, e: number, f: number, g: number, h: bigint, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number) => number;
+  readonly __wbg_get_simulationconfig_max_blocksize: (a: number) => bigint;
+  readonly __wbg_set_simulationconfig_max_blocksize: (a: number, b: bigint) => void;
+  readonly __wbg_get_simulationconfig_max_blocksize_growth_rate: (a: number) => number;
+  readonly __wbg_set_simulationconfig_max_blocksize_growth_rate: (a: number, b: number) => void;
+  readonly __wbg_get_simulationconfig_use_long_term_median_cap: (a: number) => number;
+  readonly __wbg_set_simulationconfig_use_long_term_median_cap: (a: number, b: number) => void;
+  readonly __wbg_get_simulationconfig_sanity_start_weight: (a: number) => bigint;
+  readonly __wbg_set_simulationconfig_sanity_start_weight: (a: number, b: bigint) => void;
+  readonly __wbg_get_simulationconfig_sanity_start_block: (a: number) => number;
+  readonly __wbg_set_simulationconfig_sanity_start_block: (a: number, b: number) => void;
+  readonly simulationconfig_new: (a: number, b: bigint, c: bigint, d: bigint, e: number, f: number, g: number, h: bigint, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: bigint, s: number, t: number, u: bigint, v: number) => number;
   readonly __wbg_simulationresults_free: (a: number, b: number) => void;
   readonly __wbg_get_simulationresults_max_penalty: (a: number) => number;
   readonly __wbg_set_simulationresults_max_penalty: (a: number, b: number) => void;

@@ -19,6 +19,11 @@ pub struct SimulationConfig {
     pub simple_blocks: bool,
     pub large_sim_mode: bool,
     pub exact_median: bool,
+    pub max_blocksize: i64,
+    pub max_blocksize_growth_rate: f64,
+    pub use_long_term_median_cap: bool,
+    pub sanity_start_weight: i64,
+    pub sanity_start_block: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -179,12 +184,30 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
         // M_S_weight calculation
         let m_s_weight = m_b.max(m_l);
         
-        // M_N calculation (capped)
-        let mn_cap = (config.mn_mult * m_l as f64) as i64;
-        let m_n = m_s.min(mn_cap);
+        // M_N calculation - NEW RULES: M_N = M_S (no cap)
+        // OLD: let mn_cap = (config.mn_mult * m_l as f64) as i64;
+        // OLD: let m_n = m_s.min(mn_cap);
+        let m_n = m_s;
         
-        // M_B_max
-        let m_b_max = 2 * m_n;
+        // Sanity cap calculation: A_C = A_S * (1 + 5/(4*10^6))^(K_B - K_S)
+        // A_S = sanity_start_weight (default 10000000 bytes)
+        // K_B = current block number (i)
+        // K_S = sanity_start_block
+        let sanity_cap = if i >= config.sanity_start_block as usize {
+            let blocks_elapsed = (i - config.sanity_start_block as usize) as f64;
+            let growth_rate: f64 = 5.0 / (4.0 * 1_000_000.0); // ~40% annual growth
+            let base: f64 = 1.0 + growth_rate;
+            let a_c = (config.sanity_start_weight as f64 * base.powf(blocks_elapsed)) as i64;
+            a_c
+        } else {
+            // Before sanity start block, use a very large value (effectively no cap)
+            i64::MAX
+        };
+        
+        // M_B_max calculation - NEW RULES: min(2*M_N, 16*M_L, A_C)
+        // OLD: M_B_max = 2*M_N with optional cap at 50*M_L or 100*M_L
+        // NEW: M_B_max = min(2*M_N, 16*M_L, A_C)
+        let m_b_max = (2 * m_n).min(16 * m_l).min(sanity_cap);
         
         // ============================================
         // LARGE_SIMULATION_MODE: Dynamic T_sim Scaling

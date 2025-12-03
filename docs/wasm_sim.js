@@ -337,6 +337,71 @@ export class SimulationConfig {
         wasm.__wbg_set_simulationconfig_exact_median(this.__wbg_ptr, arg0);
     }
     /**
+     * @returns {bigint}
+     */
+    get max_blocksize() {
+        const ret = wasm.__wbg_get_simulationconfig_max_blocksize(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set max_blocksize(arg0) {
+        wasm.__wbg_set_simulationconfig_max_blocksize(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get max_blocksize_growth_rate() {
+        const ret = wasm.__wbg_get_simulationconfig_max_blocksize_growth_rate(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set max_blocksize_growth_rate(arg0) {
+        wasm.__wbg_set_simulationconfig_max_blocksize_growth_rate(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {boolean}
+     */
+    get use_long_term_median_cap() {
+        const ret = wasm.__wbg_get_simulationconfig_use_long_term_median_cap(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * @param {boolean} arg0
+     */
+    set use_long_term_median_cap(arg0) {
+        wasm.__wbg_set_simulationconfig_use_long_term_median_cap(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
+    get sanity_start_weight() {
+        const ret = wasm.__wbg_get_simulationconfig_sanity_start_weight(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set sanity_start_weight(arg0) {
+        wasm.__wbg_set_simulationconfig_sanity_start_weight(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get sanity_start_block() {
+        const ret = wasm.__wbg_get_simulationconfig_sanity_start_block(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set sanity_start_block(arg0) {
+        wasm.__wbg_set_simulationconfig_sanity_start_block(this.__wbg_ptr, arg0);
+    }
+    /**
      * @param {number} n
      * @param {bigint} steady_state
      * @param {bigint} z_m
@@ -354,9 +419,14 @@ export class SimulationConfig {
      * @param {boolean} simple_blocks
      * @param {boolean} large_sim_mode
      * @param {boolean} exact_median
+     * @param {bigint} max_blocksize
+     * @param {number} max_blocksize_growth_rate
+     * @param {boolean} use_long_term_median_cap
+     * @param {bigint} sanity_start_weight
+     * @param {number} sanity_start_block
      */
-    constructor(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median) {
-        const ret = wasm.simulationconfig_new(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median);
+    constructor(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block) {
+        const ret = wasm.simulationconfig_new(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block);
         this.__wbg_ptr = ret >>> 0;
         SimulationConfigFinalization.register(this, this.__wbg_ptr, this);
         return this;

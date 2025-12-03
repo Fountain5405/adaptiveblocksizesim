@@ -20,9 +20,6 @@ fi
 
 echo "✅ WebAssembly module built successfully!"
 
-# Copy the HTML file to the pkg directory for serving
-cp ../index.html pkg/
-
 # Copy deployment files to docs directory
 echo "📁 Copying deployment files to docs directory..."
 cp pkg/*.wasm pkg/*.js pkg/*.d.ts pkg/index.html ../docs/

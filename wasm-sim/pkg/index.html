@@ -114,20 +114,20 @@
                         
                         <div class="mb-2">
                             <label class="form-label">Steady State (Bytes)</label>
-                            <input type="number" id="steady_state" class="form-control form-control-sm" value="300000">
+                            <input type="number" id="steady_state" class="form-control form-control-sm" value="1000000">
                             <small class="form-text">Network blocksize at start (M_L, M_S initial)</small>
                         </div>
 
                         <div class="mb-2">
                             <label class="form-label">Z_M (Penalty Free Zone)</label>
-                            <input type="number" id="z_m" class="form-control form-control-sm" value="300000">
-                            <small class="form-text">Guaranteed penalty free block weight.</small>
+                            <input type="number" id="z_m" class="form-control form-control-sm" value="1000000">
+                            <small class="form-text">Guaranteed penalty free block weight. <b>New: 1MB (was 300kB)</b></small>
                         </div>
 
                         <div class="mb-2">
                             <label class="form-label">T_R (Ref Transaction)</label>
-                            <input type="number" id="t_r" class="form-control form-control-sm" value="3000">
-                            <small class="form-text">Reference tx weight for fee calculation.</small>
+                            <input type="number" id="t_r" class="form-control form-control-sm" value="10000">
+                            <small class="form-text">Reference tx weight for fee calculation. <b>New: 10kB (was 3kB)</b></small>
                         </div>
 
                         <div class="mb-2">
@@ -167,7 +167,19 @@
                         <div class="mb-2">
                             <label class="form-label">M_N Cap Factor</label>
                             <input type="number" id="mn_mult" class="form-control form-control-sm" value="50" step="1">
-                            <small class="form-text">M_N = min(M_S, <b>X</b>·M_L). Caps short-term effect.</small>
+                            <small class="form-text"><b>NEW RULES:</b> M_N = M_S (no cap). This field kept for backwards compatibility.</small>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <label class="form-label">Sanity Start Weight (Bytes)</label>
+                            <input type="number" id="sanity_start_weight" class="form-control form-control-sm" value="10000000">
+                            <small class="form-text">A_S: Starting weight for sanity cap (10MB default)</small>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <label class="form-label">Sanity Start Block</label>
+                            <input type="number" id="sanity_start_block" class="form-control form-control-sm" value="0">
+                            <small class="form-text">K_S: Block number when sanity cap starts (0 = from beginning)</small>
                         </div>
                     </div>
 
@@ -724,7 +736,12 @@
                 config.usersPayMore,
                 config.simpleBlocks,
                 config.largeSimMode,
-                config.exactMedian
+                config.exactMedian,
+                BigInt(config.maxBlocksize || 100000000),
+                config.maxBlocksizeGrowthRate || 0.0,
+                config.useLongTermMedianCap || false,
+                BigInt(config.sanityStartWeight),
+                config.sanityStartBlock
             );
             
             // Run WASM simulation
@@ -922,11 +939,24 @@
             // M_S_weight = max(M_B, M_L) - uses previous M_B
             let M_S_weight = Math.max(M_B, M_L);
             
-            // M_N = min(M_S, MN_MULT * M_L) - caps short-term effect
-            let M_N = Math.min(M_S, MN_MULT * M_L);
+            // M_N calculation - NEW RULES: M_N = M_S (no cap)
+            // OLD: let M_N = Math.min(M_S, MN_MULT * M_L);
+            let M_N = M_S;
             
-            // M_B_max = 2 * M_N
-            let M_B_max = 2 * M_N;
+            // Sanity cap calculation: A_C = A_S * (1 + 5/(4*10^6))^(K_B - K_S)
+            let sanity_cap;
+            if (i >= cfg.sanityStartBlock) {
+                let blocks_elapsed = i - cfg.sanityStartBlock;
+                let growth_rate = 5.0 / (4.0 * 1000000.0); // ~40% annual growth
+                sanity_cap = Math.floor(cfg.sanityStartWeight * Math.pow(1.0 + growth_rate, blocks_elapsed));
+            } else {
+                sanity_cap = Number.MAX_SAFE_INTEGER; // Effectively no cap before start block
+            }
+            
+            // M_B_max calculation - NEW RULES: min(2*M_N, 16*M_L, A_C)
+            // OLD: M_B_max = 2 * M_N
+            // NEW: M_B_max = min(2*M_N, 16*M_L, A_C)
+            let M_B_max = Math.min(2 * M_N, 16 * M_L, sanity_cap);
             
             // Fee calculations
             let f_R = R_Base * T_R / (M_L * M_L);
@@ -1306,7 +1336,12 @@
             fastMedian: document.getElementById('fast_median').checked,
             exactMedian: document.getElementById('exact_median').checked,
             simpleBlocks: document.getElementById('simple_blocks').checked,
-            useWorkers: document.getElementById('use_workers').checked
+            useWorkers: document.getElementById('use_workers').checked,
+            sanityStartWeight: getInt('sanity_start_weight'),
+            sanityStartBlock: getInt('sanity_start_block'),
+            maxBlocksize: 100000000,
+            maxBlocksizeGrowthRate: 0.0,
+            useLongTermMedianCap: false
         };
         
         // Clear previous results
