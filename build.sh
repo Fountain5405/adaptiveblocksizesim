@@ -8,7 +8,7 @@ set -e  # Exit on error
 echo "🔨 Building WebAssembly module..."
 
 # Change to the wasm-sim directory
-cd wasm-sim
+cd wasm-sim || exit 1
 
 # Build the WebAssembly module
 wasm-pack build --target web --out-dir pkg
@@ -20,17 +20,19 @@ fi
 
 echo "✅ WebAssembly module built successfully!"
 
-# Copy deployment files to docs directory
+# Copy deployment files to docs directory (excluding index.html)
 echo "📁 Copying deployment files to docs directory..."
-cp pkg/*.wasm pkg/*.js pkg/*.d.ts pkg/index.html ../docs/
+cp pkg/*.wasm pkg/*.js pkg/*.d.ts ../docs/
 
 echo "✅ Deployment files copied to docs directory!"
+echo "💡 Note: index.html is maintained in docs/ directory and not copied from pkg/"
 
 # Check if Python simple HTTP server is available
 if command -v python3 &> /dev/null; then
     echo "🌐 Starting Python HTTP server..."
-    echo "📂 Open http://localhost:8000/docs/ in your browser"
-    echo "📂 WebAssembly module will be served from: http://localhost:8000/docs/"
+    echo "📂 Open http://localhost:8000 in your browser"
+    echo "📂 WebAssembly module will be served from: http://localhost:8000"
+    echo "💡 Note: Server is running from docs/ directory, so access via root URL"
     
     # Change to docs directory and start server
     cd ../docs

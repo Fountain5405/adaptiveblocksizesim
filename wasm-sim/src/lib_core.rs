@@ -24,6 +24,14 @@ pub struct SimulationConfig {
     pub use_long_term_median_cap: bool,
     pub sanity_start_weight: i64,
     pub sanity_start_block: u32,
+    // NEW: Monero scaling 2025 parameters
+    pub use_new_scaling_rules: bool,  // Toggle between old and new rules
+    pub z_m_old: i64,              // Old Z_M for transitional calculations
+    pub ms_cap_multiplier: f64,      // M_S cap: old=50.0, new=8.0
+    pub min_fee_percentage: f64,      // Old=0.95, new=1.0 (100%)
+    pub wallet_grace_period: u32,     // Old=10, new=1000 blocks
+    pub fee_level_count: u32,        // Old=4, new=5 levels
+    pub fee_rounding_digits: u32,    // Number of significant digits for rounding
 }
 
 #[derive(Clone, Debug)]
@@ -77,6 +85,23 @@ impl Rng {
     }
 }
 
+/// Round a number to specified number of significant digits
+fn round_to_significant_digits(value: f64, digits: u32) -> f64 {
+    if value == 0.0 || !value.is_finite() {
+        return value;
+    }
+    
+    let digits_f64 = digits as f64;
+    let exponent = (value.abs().log10().floor() - digits_f64 + 1.0).floor();
+    let factor = 10.0_f64.powf(-exponent);
+    (value * factor).round() / factor
+}
+
+/// Apply transitional scaling for pre-fork blocks
+fn apply_transitional_scaling(m_b_old: i64, z_m_old: i64, z_m_new: i64) -> i64 {
+    (m_b_old as f64 * (z_m_new as f64 / z_m_old as f64)) as i64
+}
+
 /// Main simulation function - core logic without WASM dependencies
 pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
     let n = config.n as usize;
@@ -89,6 +114,10 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
     let mut m_b: i64 = 0;
     let mut m_l_prev = config.steady_state;
     let mut rng = Rng::new(12345);
+    
+    // For transitional calculations, track if we're in post-fork era
+    let fork_block = 100000; // Assume fork happens at block 100000
+    let is_post_fork = n > fork_block;
     
     // Circular buffers for median calculation
     let mut m_l_buffer: Vec<i64> = vec![config.steady_state; len_l];
@@ -176,18 +205,34 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
         let m_l = (m_l_sorted[mid_100k] + m_l_sorted[len_l - 1 - mid_100k]) / 2;
         let m_s = (m_s_sorted[mid_100] + m_s_sorted[len_s - 1 - mid_100]) / 2;
         
-        // M_L_weight calculation
-        let ml_upper = (config.ml_mult * m_l_prev as f64) as i64;
-        let ml_lower = (m_l_prev as f64 / config.ml_mult) as i64;
+        // M_L_weight calculation - use different growth rates based on scaling rules
+        let ml_mult = if config.use_new_scaling_rules { 1.2 } else { config.ml_mult };
+        let ml_upper = (ml_mult * m_l_prev as f64) as i64;
+        let ml_lower = (m_l_prev as f64 / ml_mult) as i64;
         let m_l_weight = m_b.min(ml_upper).max(config.z_m).max(ml_lower);
         
-        // M_S_weight calculation
-        let m_s_weight = m_b.max(m_l);
+        // M_S_weight calculation - different between old and new rules
+        // NEW RULES (PDF line 114-118): M_S = median of M_B (just M_B, no M_L constraint)
+        // OLD RULES (PDF line 38-43): M_S = median of max(M_B, M_L)
+        let m_s_weight = if config.use_new_scaling_rules {
+            // NEW: Just M_B (PDF line 116-117: "median over the last 100 blocks of M_B")
+            m_b
+        } else {
+            // OLD: max(M_B, M_L)
+            m_b.max(m_l)
+        };
         
-        // M_N calculation - NEW RULES: M_N = M_S (no cap)
-        // OLD: let mn_cap = (config.mn_mult * m_l as f64) as i64;
-        // OLD: let m_n = m_s.min(mn_cap);
-        let m_n = m_s;
+        // M_N calculation - different rules based on scaling version
+        // NOTE: M_N uses the MEDIAN (m_s), not the weight being added to buffer (m_s_weight)
+        let m_n = if config.use_new_scaling_rules {
+            // NEW (PDF line 120-130): M_N = min(max(M_S, M_L), 8M_L)
+            let ms_cap = (config.ms_cap_multiplier * m_l as f64) as i64;
+            m_s.max(m_l).min(ms_cap)
+        } else {
+            // OLD (PDF line 46-50): M_N = min(M_S, 50*M_L)
+            let ms_cap = (config.mn_mult * m_l as f64) as i64;
+            m_s.min(ms_cap)
+        };
         
         // Sanity cap calculation: A_C = A_S * (1 + 5/(4*10^6))^(K_B - K_S)
         // A_S = sanity_start_weight (default 10000000 bytes)
@@ -204,10 +249,14 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
             i64::MAX
         };
         
-        // M_B_max calculation - NEW RULES: min(2*M_N, 16*M_L, A_C)
-        // OLD: M_B_max = 2*M_N with optional cap at 50*M_L or 100*M_L
-        // NEW: M_B_max = min(2*M_N, 16*M_L, A_C)
-        let m_b_max = (2 * m_n).min(16 * m_l).min(sanity_cap);
+        // M_B_max calculation - different rules based on scaling version
+        let m_b_max = if config.use_new_scaling_rules {
+            // New: M_B_max = min(2*M_N, 16*M_L, A_C)
+            (2 * m_n).min(16 * m_l).min(sanity_cap)
+        } else {
+            // Old: M_B_max = 2*M_N
+            2 * m_n
+        };
         
         // ============================================
         // LARGE_SIMULATION_MODE: Dynamic T_sim Scaling
@@ -255,8 +304,21 @@ pub fn run_simulation_core(config: SimulationConfig) -> SimulationResults {
             }
         }
         
-        // Fee calculations
-        let f_r = config.r_base * (config.t_r as f64) / ((m_l as f64) * (m_l as f64));
+        // Fee calculations - PDF Section 2a (lines 296-422)
+        // M_F = M_L for minimum fee calculation
+        // f_R = R_Base * B_RL / M_F where B_RL = T_R / M_F
+        // f_IL = f_RL for new rules (100%), f_I = 0.95*f_R for old rules (95%)
+        let t_r = config.t_r;  // T_R: old=3000, new=10000 bytes (PDF lines 179, 305)
+        let f_r = config.r_base * (t_r as f64) / ((m_l as f64) * (m_l as f64));
+        
+        // Minimum fee calculation with percentage and rounding (PDF lines 280-295, 407-422)
+        let min_fee_percentage = if config.use_new_scaling_rules {
+            config.min_fee_percentage  // New: 1.0 (100% - no reduction, PDF line 390)
+        } else {
+            0.95  // Old: 95% reduction (PDF line 263-264)
+        };
+        let f_i_raw = min_fee_percentage * f_r;
+        let f_i = round_to_significant_digits(f_i_raw, config.fee_rounding_digits);
         
         // ============================================
         // 2. BROADCAST TRANSACTIONS

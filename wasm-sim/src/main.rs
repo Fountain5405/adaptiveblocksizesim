@@ -12,9 +12,9 @@ fn main() {
     // Default configuration
     let mut config = SimulationConfig {
         n: 20000,
-        steady_state: 1000000,  // NEW: 1MB (was 300kB)
-        z_m: 1000000,  // NEW: 1MB (was 300kB)
-        t_r: 10000,  // NEW: 10kB (was 3kB)
+        steady_state: 625000,  // NEW: 625kB per PDF line 85
+        z_m: 625000,  // NEW: 625kB per PDF line 85 (was 300kB old, not 1MB)
+        t_r: 10000,  // NEW: 10kB per PDF line 318 (was 3kB)
         r_base: 0.6,
         mid_100k: 50000,
         mid_100: 50,
@@ -33,6 +33,14 @@ fn main() {
         use_long_term_median_cap: true,  // Use traditional M_N cap by default
         sanity_start_weight: 10_000_000,  // NEW: 10MB sanity start weight
         sanity_start_block: 0,  // NEW: Start from block 0
+        // NEW: Monero scaling 2025 parameters with defaults
+        use_new_scaling_rules: true,  // Default to new rules
+        z_m_old: 300000,           // Old Z_M value
+        ms_cap_multiplier: 8.0,      // New: 8x M_L cap
+        min_fee_percentage: 1.0,      // New: 100% of penalty fee
+        wallet_grace_period: 1000,     // New: 1000 blocks grace period
+        fee_level_count: 5,           // New: 5 fee levels
+        fee_rounding_digits: 2,       // New: 2 significant digits
     };
     
     let mut json_output = false;
@@ -80,6 +88,49 @@ fn main() {
             "--use-long-term-median-cap" => {
                 if i + 1 < args.len() {
                     config.use_long_term_median_cap = args[i + 1].parse().unwrap_or(1) != 0;
+                    i += 1;
+                }
+            }
+            // NEW: Monero scaling 2025 parameters
+            "--use-new-scaling" => {
+                config.use_new_scaling_rules = true;
+            }
+            "--use-old-scaling" => {
+                config.use_new_scaling_rules = false;
+            }
+            "--zm-old" => {
+                if i + 1 < args.len() {
+                    config.z_m_old = args[i + 1].parse().unwrap_or(300000);
+                    i += 1;
+                }
+            }
+            "--ms-cap-multiplier" => {
+                if i + 1 < args.len() {
+                    config.ms_cap_multiplier = args[i + 1].parse().unwrap_or(8.0);
+                    i += 1;
+                }
+            }
+            "--min-fee-percentage" => {
+                if i + 1 < args.len() {
+                    config.min_fee_percentage = args[i + 1].parse().unwrap_or(1.0);
+                    i += 1;
+                }
+            }
+            "--wallet-grace-period" => {
+                if i + 1 < args.len() {
+                    config.wallet_grace_period = args[i + 1].parse().unwrap_or(1000);
+                    i += 1;
+                }
+            }
+            "--fee-level-count" => {
+                if i + 1 < args.len() {
+                    config.fee_level_count = args[i + 1].parse().unwrap_or(5);
+                    i += 1;
+                }
+            }
+            "--fee-rounding-digits" => {
+                if i + 1 < args.len() {
+                    config.fee_rounding_digits = args[i + 1].parse().unwrap_or(2);
                     i += 1;
                 }
             }
@@ -162,6 +213,13 @@ fn main() {
         println!("  Max Blocksize: {} bytes", config.max_blocksize);
         println!("  Max Blocksize Growth Rate: {:.2}% per year", config.max_blocksize_growth_rate * 100.0);
         println!("  Use Long Term Median Cap: {}", config.use_long_term_median_cap);
+        println!("  Use New Scaling Rules: {}", config.use_new_scaling_rules);
+        println!("  Z_M (Old): {} bytes", config.z_m_old);
+        println!("  M_S Cap Multiplier: {:.1}x", config.ms_cap_multiplier);
+        println!("  Min Fee Percentage: {:.1}%", config.min_fee_percentage * 100.0);
+        println!("  Wallet Grace Period: {} blocks", config.wallet_grace_period);
+        println!("  Fee Level Count: {}", config.fee_level_count);
+        println!("  Fee Rounding Digits: {}", config.fee_rounding_digits);
         println!();
         
         println!("Running simulation...");

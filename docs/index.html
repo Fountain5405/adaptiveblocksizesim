@@ -118,13 +118,13 @@
                             <small class="form-text">Network blocksize at start (M_L, M_S initial)</small>
                         </div>
 
-                        <div class="mb-2">
-                            <label class="form-label">Z_M (Penalty Free Zone)</label>
+                        <div id="field_z_m" class="mb-2">
+                            <label class="form-label">Z_M (Current Penalty Free Zone)</label>
                             <input type="number" id="z_m" class="form-control form-control-sm" value="1000000">
-                            <small class="form-text">Guaranteed penalty free block weight. <b>New: 1MB (was 300kB)</b></small>
+                            <small class="form-text">Current penalty free block weight. <b>New: 1MB (was 300kB)</b></small>
                         </div>
 
-                        <div class="mb-2">
+                        <div id="field_t_r" class="mb-2">
                             <label class="form-label">T_R (Ref Transaction)</label>
                             <input type="number" id="t_r" class="form-control form-control-sm" value="10000">
                             <small class="form-text">Reference tx weight for fee calculation. <b>New: 10kB (was 3kB)</b></small>
@@ -158,29 +158,24 @@
                             <small class="form-text">Tx size step (Bytes). Granularity of sim.</small>
                         </div>
                         
-                        <div class="mb-2">
+                        <div id="field_ml_mult" class="mb-2">
                             <label class="form-label">M_L Growth Factor</label>
                             <input type="number" id="ml_mult" class="form-control form-control-sm" value="2" step="0.1">
                             <small class="form-text">M_L_weight = max(min(M_B, <b>X</b>·M_L), Z_M, M_L/<b>X</b>). New=2, Old=1.7</small>
                         </div>
-                        
-                        <div class="mb-2">
+
+                        <div id="field_mn_mult" class="mb-2">
                             <label class="form-label">M_N Cap Factor</label>
                             <input type="number" id="mn_mult" class="form-control form-control-sm" value="50" step="1">
                             <small class="form-text"><b>NEW RULES:</b> M_N = M_S (no cap). This field kept for backwards compatibility.</small>
                         </div>
-                        
-                        <div class="mb-2">
-                            <label class="form-label">Sanity Start Weight (Bytes)</label>
-                            <input type="number" id="sanity_start_weight" class="form-control form-control-sm" value="10000000">
-                            <small class="form-text">A_S: Starting weight for sanity cap (10MB default)</small>
+
+                        <div id="field_ms_cap_multiplier_main" class="mb-2" style="display: none;">
+                            <label class="form-label">M_S Cap Multiplier</label>
+                            <input type="number" id="ms_cap_multiplier_main" class="form-control form-control-sm" value="8" step="0.5">
+                            <small class="form-text">M_S cap: Old=50×, New=8× M_L</small>
                         </div>
                         
-                        <div class="mb-2">
-                            <label class="form-label">Sanity Start Block</label>
-                            <input type="number" id="sanity_start_block" class="form-control form-control-sm" value="0">
-                            <small class="form-text">K_S: Block number when sanity cap starts (0 = from beginning)</small>
-                        </div>
                     </div>
 
                     <div class="col-md-3 border-end">
@@ -228,18 +223,91 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="fast_median" checked>
                             <label class="form-check-label" style="font-size: 0.85rem">Fast Median (circular buffer)</label>
+                            <small class="form-text">Uses optimized circular buffer. When unchecked: Standard array method (original Python). When checked without Exact: Fast approximate. When checked with Exact: Fast exact.</small>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="exact_median">
                             <label class="form-check-label" style="font-size: 0.85rem">Exact Median (sort every update)</label>
+                            <small class="form-text">Only active when Fast Median is checked. Forces exact calculation by sorting on every update instead of periodic sorting.</small>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="simple_blocks" checked>
                             <label class="form-check-label" style="font-size: 0.85rem">Simple Block Building</label>
+                            <small class="form-text">Uses simplified block construction algorithm. Significantly faster with minimal impact on simulation accuracy.</small>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="use_workers">
                             <label class="form-check-label" style="font-size: 0.85rem">Use Web Worker (no UI freeze)</label>
+                            <small class="form-text">Runs simulation in background thread to prevent UI freezing during long calculations. Requires modern browser support.</small>
+                        </div>
+                        
+                        <div class="card mt-3 border-secondary">
+                            <div class="card-header bg-light py-2">
+                                <h6 class="m-0 text-secondary" style="font-size: 0.8rem;">Sanity Cap Settings</h6>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="mb-2">
+                                    <label class="form-label">Sanity Start Weight (Bytes)</label>
+                                    <input type="number" id="sanity_start_weight" class="form-control form-control-sm" value="10000000">
+                                    <small class="form-text">A_S: Starting weight for sanity cap (10MB default)</small>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <label class="form-label">Sanity Start Block</label>
+                                    <input type="number" id="sanity_start_block" class="form-control form-control-sm" value="0">
+                                    <small class="form-text">K_S: Block number when sanity cap starts (0 = from beginning)</small>
+                                </div>
+                                
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="enable_sanity_cap">
+                                    <label class="form-check-label" style="font-size: 0.85rem">Enable Sanity Cap (10MB, ~40% annual growth)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Monero Scaling 2025</h6>
+                        
+                        <div class="mb-2">
+                            <label class="form-label">Scaling Rules</label>
+                            <select id="scaling_rules" class="form-select form-select-sm">
+                                <option value="old">Old Rules (Pre-2025)</option>
+                                <option value="new" selected>New Rules (2025)</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                            <small class="form-text">Choose between old and new scaling rules.</small>
+                        </div>
+
+                        <div id="field_z_m_old" class="mb-2" style="display: none;">
+                            <label class="form-label">Z_M (Old)</label>
+                            <input type="number" id="z_m_old" class="form-control form-control-sm" value="300000">
+                            <small class="form-text">Old penalty free zone for transitional calc.</small>
+                        </div>
+
+
+                        <div id="field_min_fee_percentage" class="mb-2" style="display: none;">
+                            <label class="form-label">Min Fee Percentage</label>
+                            <input type="number" id="min_fee_percentage" class="form-control form-control-sm" value="1.0" step="0.05">
+                            <small class="form-text">Old=0.95 (95%), New=1.0 (100%)</small>
+                        </div>
+
+                        <div id="field_wallet_grace_period" class="mb-2" style="display: none;">
+                            <label class="form-label">Wallet Grace Period</label>
+                            <input type="number" id="wallet_grace_period" class="form-control form-control-sm" value="1000" step="100">
+                            <small class="form-text">Blocks: Old=10, New=1000</small>
+                        </div>
+
+                        <div id="field_fee_level_count" class="mb-2" style="display: none;">
+                            <label class="form-label">Fee Level Count</label>
+                            <input type="number" id="fee_level_count" class="form-control form-control-sm" value="5" step="1">
+                            <small class="form-text">Fee levels: Old=4, New=5</small>
+                        </div>
+
+                        <div id="field_fee_rounding_digits" class="mb-2" style="display: none;">
+                            <label class="form-label">Fee Rounding Digits</label>
+                            <input type="number" id="fee_rounding_digits" class="form-control form-control-sm" value="2" step="1">
+                            <small class="form-text">Significant digits for fee rounding.</small>
                         </div>
                     </div>
 
@@ -592,6 +660,19 @@
         return mean + stdDev * num;
     }
 
+    // Round a number to specified number of significant digits
+    // Matches PDF lines 777-812 for fee rounding
+    function roundToSignificantDigits(value, digits) {
+        if (value === 0 || !isFinite(value)) {
+            return value;
+        }
+        
+        const digitsF64 = digits;
+        const exponent = Math.floor(Math.log10(Math.abs(value)) - digitsF64 + 1);
+        const factor = Math.pow(10, -exponent);
+        return Math.round(value * factor) / factor;
+    }
+
     
     function updateCombinedChart() {
         if (!rawSimData) return;
@@ -741,7 +822,15 @@
                 config.maxBlocksizeGrowthRate || 0.0,
                 config.useLongTermMedianCap || false,
                 BigInt(config.sanityStartWeight),
-                config.sanityStartBlock
+                config.sanityStartBlock,
+                // NEW: Monero scaling 2025 parameters
+                config.useNewScalingRules || false,
+                BigInt(config.zMOld || 300000),
+                config.msCapMultiplier || 8.0,
+                config.minFeePercentage || 1.0,
+                config.walletGracePeriod || 1000,
+                config.feeLevelCount || 5,
+                config.feeRoundingDigits || 2
             );
             
             // Run WASM simulation
@@ -835,13 +924,12 @@
         const SIMPLE_BLOCKS = cfg.simpleBlocks;
         
         // Multiplier for M_L_weight calculation
-        // NEW consensus (2021 proposal): 2x
-        // OLD consensus: 1.7x (some versions used 1.4x)
-        const ML_MULT = cfg.mlMult;
+        // NEW consensus: 1.2x (PDF line 94)
+        // OLD consensus: 1.7x
+        const ML_MULT = cfg.useNewScalingRules ? 1.2 : cfg.mlMult;
         
-        // Multiplier for M_N cap: M_N = min(M_S, MN_MULT * M_L)
-        // Default is 50x per the Monero spec
-        const MN_MULT = cfg.mnMult;
+        // M_S cap multiplier for new rules
+        const MS_CAP_MULT = cfg.msCapMultiplier || 8.0;
         
         // Window Setup
         const mid_100k = cfg.mid_100k;
@@ -932,16 +1020,26 @@
             }
             
             // M_L_weight: value to add to M_L_list
-            // PDF NEW: M_L = median of max(min(M_B, 2*M_L), Z_M, M_L/2)
+            // PDF NEW: M_L = median of max(min(M_B, 1.2*M_L), Z_M, M_L/1.2)
             // PDF OLD: M_L = median of max(min(M_B, 1.7*M_L), Z_M, M_L/1.7)
             let M_L_weight = Math.max(Math.min(M_B, ML_MULT * M_L_prev), Z_M, M_L_prev / ML_MULT);
             
-            // M_S_weight = max(M_B, M_L) - uses previous M_B
-            let M_S_weight = Math.max(M_B, M_L);
+            // M_S_weight calculation - different between old and new rules
+            // NEW RULES (PDF line 116-117): M_S = median of M_B (just M_B, no M_L constraint)
+            // OLD RULES (PDF line 38-43): M_S = median of max(M_B, M_L)
+            let M_S_weight = cfg.useNewScalingRules ? M_B : Math.max(M_B, M_L);
             
-            // M_N calculation - NEW RULES: M_N = M_S (no cap)
-            // OLD: let M_N = Math.min(M_S, MN_MULT * M_L);
-            let M_N = M_S;
+            // M_N calculation - different rules based on scaling version
+            // NEW (PDF line 120-130): M_N = min(max(M_S, M_L), 8*M_L)
+            // OLD (PDF line 46-50): M_N = min(M_S, 50*M_L)
+            let M_N;
+            if (cfg.useNewScalingRules) {
+                const ms_cap = MS_CAP_MULT * M_L;
+                M_N = Math.min(Math.max(M_S, M_L), ms_cap);
+            } else {
+                const mn_mult = cfg.mnMult || 50.0;
+                M_N = Math.min(M_S, mn_mult * M_L);
+            }
             
             // Sanity cap calculation: A_C = A_S * (1 + 5/(4*10^6))^(K_B - K_S)
             let sanity_cap;
@@ -958,9 +1056,19 @@
             // NEW: M_B_max = min(2*M_N, 16*M_L, A_C)
             let M_B_max = Math.min(2 * M_N, 16 * M_L, sanity_cap);
             
-            // Fee calculations
+            // Fee calculations - PDF Section 2a (lines 296-422)
+            // M_F = M_L for minimum fee calculation
+            // f_R = R_Base * B_RL / M_F where B_RL = T_R / M_F
+            // f_IL = f_RL for new rules (100%), f_I = 0.95*f_R for old rules (95%)
             let f_R = R_Base * T_R / (M_L * M_L);
-            let f_I = 0.95 * f_R;
+            
+            // Minimum fee calculation with percentage and rounding (PDF lines 280-295, 407-422)
+            let min_fee_percentage = cfg.useNewScalingRules ?
+                (cfg.minFeePercentage || 1.0) :  // New: 1.0 (100% - no reduction, PDF line 390)
+                0.95;  // Old: 95% reduction (PDF line 263-264)
+            
+            let f_I_raw = min_fee_percentage * f_R;
+            let f_I = roundToSignificantDigits(f_I_raw, cfg.feeRoundingDigits || 2);
             if (f_I < 1e-12) f_I = 1e-12;
             
             // ============================================
@@ -1317,6 +1425,43 @@
         const getVal = (id) => parseFloat(document.getElementById(id).value);
         const getInt = (id) => parseInt(document.getElementById(id).value);
         
+        // Get scaling rules configuration
+        const scalingRules = document.getElementById('scaling_rules').value;
+        let useNewScalingRules = false;
+        let zMOld = 300000;
+        let msCapMultiplier = 50.0;
+        let minFeePercentage = 0.95;
+        let walletGracePeriod = 10;
+        let feeLevelCount = 4;
+        let feeRoundingDigits = 2;
+        
+        if (scalingRules === 'new') {
+            useNewScalingRules = true;
+            zMOld = 300000;
+            msCapMultiplier = 8.0;
+            minFeePercentage = 1.0;
+            walletGracePeriod = 1000;
+            feeLevelCount = 5;
+            feeRoundingDigits = 2;
+        } else if (scalingRules === 'old') {
+            useNewScalingRules = false;
+            zMOld = 300000;
+            msCapMultiplier = 50.0;
+            minFeePercentage = 0.95;
+            walletGracePeriod = 10;
+            feeLevelCount = 4;
+            feeRoundingDigits = 2;
+        } else if (scalingRules === 'custom') {
+            useNewScalingRules = true; // Custom uses new rules framework
+            zMOld = getInt('z_m_old');
+            // Use the main M_S Cap Multiplier field when in custom mode
+            msCapMultiplier = getVal('ms_cap_multiplier_main');
+            minFeePercentage = getVal('min_fee_percentage');
+            walletGracePeriod = getInt('wallet_grace_period');
+            feeLevelCount = getInt('fee_level_count');
+            feeRoundingDigits = getInt('fee_rounding_digits');
+        }
+        
         const config = {
             n: getInt('n'),
             steadyState: getInt('steady_state'),
@@ -1341,7 +1486,15 @@
             sanityStartBlock: getInt('sanity_start_block'),
             maxBlocksize: 100000000,
             maxBlocksizeGrowthRate: 0.0,
-            useLongTermMedianCap: false
+            useLongTermMedianCap: false,
+            // NEW: Monero scaling 2025 parameters
+            useNewScalingRules: useNewScalingRules,
+            zMOld: zMOld,
+            msCapMultiplier: msCapMultiplier,
+            minFeePercentage: minFeePercentage,
+            walletGracePeriod: walletGracePeriod,
+            feeLevelCount: feeLevelCount,
+            feeRoundingDigits: feeRoundingDigits
         };
         
         // Clear previous results
@@ -1458,14 +1611,109 @@
         }
     }
 
+    // Helper function to show/hide fields
+    function setFieldVisibility(fieldId, visible) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.style.display = visible ? 'block' : 'none';
+        }
+    }
+    
+    // Function to update form fields based on scaling rules selection
+    function updateScalingRulesFields() {
+        const scalingRules = document.getElementById('scaling_rules').value;
+        
+        // Show/hide custom fields based on selection
+        const customFields = [
+            'field_z_m_old', 'field_ms_cap_multiplier', 'field_min_fee_percentage',
+            'field_wallet_grace_period', 'field_fee_level_count', 'field_fee_rounding_digits'
+        ];
+        
+        const showCustomFields = (scalingRules === 'custom');
+        customFields.forEach(fieldId => {
+            setFieldVisibility(fieldId, showCustomFields);
+        });
+        
+        // Enable/disable input fields within custom sections
+        const customInputFields = [
+            'z_m_old', 'ms_cap_multiplier', 'min_fee_percentage',
+            'wallet_grace_period', 'fee_level_count', 'fee_rounding_digits'
+        ];
+        
+        customInputFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.disabled = !showCustomFields;
+                field.style.opacity = showCustomFields ? '1' : '0.5';
+            }
+        });
+        
+        // Show/hide main Z_M field (hide when custom is selected)
+        setFieldVisibility('field_z_m', scalingRules !== 'custom');
+        
+        // Show/hide M_N Cap Factor (only relevant for old rules)
+        setFieldVisibility('field_mn_mult', scalingRules === 'old');
+        
+        // Show/hide M_S Cap Multiplier in main section (only for custom)
+        setFieldVisibility('field_ms_cap_multiplier_main', scalingRules === 'custom');
+        
+        // Update main form fields based on selection
+        if (scalingRules === 'old') {
+            document.getElementById('z_m').value = 300000;
+            document.getElementById('t_r').value = 3000;
+            document.getElementById('ml_mult').value = 1.7;
+            document.getElementById('mn_mult').value = 50.0;
+            
+            // Update descriptions
+            document.querySelector('label[for="z_m"] + small').innerHTML = 'Current penalty free block weight. <b>Old: 300kB</b>';
+            document.querySelector('label[for="t_r"] + small').innerHTML = 'Reference tx weight for fee calculation. <b>Old: 3kB</b>';
+            document.querySelector('label[for="ml_mult"] + small').innerHTML = 'M_L_weight = max(min(M_B, <b>X</b>·M_L), Z_M, M_L/<b>X</b>). Old=1.7, New=2';
+            document.querySelector('label[for="mn_mult"] + small').innerHTML = '<b>OLD RULES:</b> M_N = min(M_S, X×M_L). Default is 50×';
+            
+        } else if (scalingRules === 'new') {
+            document.getElementById('z_m').value = 1000000;
+            document.getElementById('t_r').value = 10000;
+            document.getElementById('ml_mult').value = 2;
+            document.getElementById('mn_mult').value = 8.0;
+            
+            // Update descriptions
+            document.querySelector('label[for="z_m"] + small').innerHTML = 'Current penalty free block weight. <b>New: 1MB (was 300kB)</b>';
+            document.querySelector('label[for="t_r"] + small').innerHTML = 'Reference tx weight for fee calculation. <b>New: 10kB (was 3kB)</b>';
+            document.querySelector('label[for="ml_mult"] + small').innerHTML = 'M_L_weight = max(min(M_B, <b>X</b>·M_L), Z_M, M_L/<b>X</b>). New=2, Old=1.7';
+            document.querySelector('label[for="mn_mult"] + small').innerHTML = '<b>NEW RULES:</b> M_N = M_S (no cap). This field kept for backwards compatibility.';
+        }
+        
+        // Set custom field values when switching to custom
+        if (scalingRules === 'custom') {
+            document.getElementById('z_m_old').value = 300000;
+            document.getElementById('ms_cap_multiplier').value = 8.0;
+            document.getElementById('ms_cap_multiplier_main').value = 8.0;
+            document.getElementById('min_fee_percentage').value = 1.0;
+            document.getElementById('wallet_grace_period').value = 1000;
+            document.getElementById('fee_level_count').value = 5;
+            document.getElementById('fee_rounding_digits').value = 2;
+        }
+    }
+    
+    // Add event listener for scaling rules dropdown
+    document.addEventListener('DOMContentLoaded', function() {
+        const scalingRulesSelect = document.getElementById('scaling_rules');
+        if (scalingRulesSelect) {
+            scalingRulesSelect.addEventListener('change', updateScalingRulesFields);
+            // Initialize fields based on default selection
+            updateScalingRulesFields();
+        }
+    });
+    
     // Start the application
     window.onload = main;
     
-    // Make startSimulation available globally
+    // Make functions available globally
     window.startSimulation = startSimulation;
     window.updateStatsDisplay = updateStatsDisplay;
     window.updateCombinedChart = updateCombinedChart;
     window.resetScales = resetScales;
+    window.updateScalingRulesFields = updateScalingRulesFields;
 
 </script>
 </body>

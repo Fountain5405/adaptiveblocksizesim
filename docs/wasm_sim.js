@@ -402,6 +402,97 @@ export class SimulationConfig {
         wasm.__wbg_set_simulationconfig_sanity_start_block(this.__wbg_ptr, arg0);
     }
     /**
+     * @returns {boolean}
+     */
+    get use_new_scaling_rules() {
+        const ret = wasm.__wbg_get_simulationconfig_use_new_scaling_rules(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * @param {boolean} arg0
+     */
+    set use_new_scaling_rules(arg0) {
+        wasm.__wbg_set_simulationconfig_use_new_scaling_rules(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
+    get z_m_old() {
+        const ret = wasm.__wbg_get_simulationconfig_z_m_old(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set z_m_old(arg0) {
+        wasm.__wbg_set_simulationconfig_z_m_old(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get ms_cap_multiplier() {
+        const ret = wasm.__wbg_get_simulationconfig_ms_cap_multiplier(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set ms_cap_multiplier(arg0) {
+        wasm.__wbg_set_simulationconfig_ms_cap_multiplier(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get min_fee_percentage() {
+        const ret = wasm.__wbg_get_simulationconfig_min_fee_percentage(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set min_fee_percentage(arg0) {
+        wasm.__wbg_set_simulationconfig_min_fee_percentage(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get wallet_grace_period() {
+        const ret = wasm.__wbg_get_simulationconfig_wallet_grace_period(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set wallet_grace_period(arg0) {
+        wasm.__wbg_set_simulationconfig_wallet_grace_period(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get fee_level_count() {
+        const ret = wasm.__wbg_get_simulationconfig_fee_level_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set fee_level_count(arg0) {
+        wasm.__wbg_set_simulationconfig_fee_level_count(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get fee_rounding_digits() {
+        const ret = wasm.__wbg_get_simulationconfig_fee_rounding_digits(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set fee_rounding_digits(arg0) {
+        wasm.__wbg_set_simulationconfig_fee_rounding_digits(this.__wbg_ptr, arg0);
+    }
+    /**
      * @param {number} n
      * @param {bigint} steady_state
      * @param {bigint} z_m
@@ -424,9 +515,16 @@ export class SimulationConfig {
      * @param {boolean} use_long_term_median_cap
      * @param {bigint} sanity_start_weight
      * @param {number} sanity_start_block
+     * @param {boolean} use_new_scaling_rules
+     * @param {bigint} z_m_old
+     * @param {number} ms_cap_multiplier
+     * @param {number} min_fee_percentage
+     * @param {number} wallet_grace_period
+     * @param {number} fee_level_count
+     * @param {number} fee_rounding_digits
      */
-    constructor(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block) {
-        const ret = wasm.simulationconfig_new(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block);
+    constructor(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block, use_new_scaling_rules, z_m_old, ms_cap_multiplier, min_fee_percentage, wallet_grace_period, fee_level_count, fee_rounding_digits) {
+        const ret = wasm.simulationconfig_new(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block, use_new_scaling_rules, z_m_old, ms_cap_multiplier, min_fee_percentage, wallet_grace_period, fee_level_count, fee_rounding_digits);
         this.__wbg_ptr = ret >>> 0;
         SimulationConfigFinalization.register(this, this.__wbg_ptr, this);
         return this;

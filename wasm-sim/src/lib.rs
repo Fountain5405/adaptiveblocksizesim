@@ -49,6 +49,14 @@ pub struct SimulationConfig {
     pub use_long_term_median_cap: bool,
     pub sanity_start_weight: i64,
     pub sanity_start_block: u32,
+    // NEW: Monero scaling 2025 parameters
+    pub use_new_scaling_rules: bool,  // Toggle between old and new rules
+    pub z_m_old: i64,              // Old Z_M for transitional calculations
+    pub ms_cap_multiplier: f64,      // M_S cap: old=50.0, new=8.0
+    pub min_fee_percentage: f64,      // Old=0.95, new=1.0 (100%)
+    pub wallet_grace_period: u32,     // Old=10, new=1000 blocks
+    pub fee_level_count: u32,        // Old=4, new=5 levels
+    pub fee_rounding_digits: u32,    // Number of significant digits for rounding
 }
 
 #[wasm_bindgen]
@@ -77,6 +85,14 @@ impl SimulationConfig {
         use_long_term_median_cap: bool,
         sanity_start_weight: i64,
         sanity_start_block: u32,
+        // NEW: Monero scaling 2025 parameters
+        use_new_scaling_rules: bool,
+        z_m_old: i64,
+        ms_cap_multiplier: f64,
+        min_fee_percentage: f64,
+        wallet_grace_period: u32,
+        fee_level_count: u32,
+        fee_rounding_digits: u32,
     ) -> SimulationConfig {
         SimulationConfig {
             n,
@@ -101,6 +117,14 @@ impl SimulationConfig {
             use_long_term_median_cap,
             sanity_start_weight,
             sanity_start_block,
+            // NEW: Monero scaling 2025 parameters
+            use_new_scaling_rules,
+            z_m_old,
+            ms_cap_multiplier,
+            min_fee_percentage,
+            wallet_grace_period,
+            fee_level_count,
+            fee_rounding_digits,
         }
     }
 }
@@ -130,6 +154,14 @@ impl From<SimulationConfig> for CoreConfig {
             use_long_term_median_cap: config.use_long_term_median_cap,
             sanity_start_weight: config.sanity_start_weight,
             sanity_start_block: config.sanity_start_block,
+            // NEW: Monero scaling 2025 parameters
+            use_new_scaling_rules: config.use_new_scaling_rules,
+            z_m_old: config.z_m_old,
+            ms_cap_multiplier: config.ms_cap_multiplier,
+            min_fee_percentage: config.min_fee_percentage,
+            wallet_grace_period: config.wallet_grace_period,
+            fee_level_count: config.fee_level_count,
+            fee_rounding_digits: config.fee_rounding_digits,
         }
     }
 }
