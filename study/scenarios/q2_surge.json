@@ -1,0 +1,109 @@
+{
+ "name": "q2_surge",
+ "description": "Q2: demand surges from 38 tx/block (Poisson)",
+ "series_every": 20,
+ "seeds": 8,
+ "base": {
+  "blocks": 70000,
+  "demand": {
+   "txs_per_block": 38,
+   "poisson": true,
+   "surge_start": 5000
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "v16",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 2500
+     }
+    ]
+   },
+   {
+    "label": "v17",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   },
+   {
+    "label": "v17_sf50",
+    "rules": "custom",
+    "params": {
+     "surge_factor": 50
+    },
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   },
+   {
+    "label": "v17_mix",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 7650,
+      "share": 0.25
+     },
+     {
+      "weight": 9093,
+      "share": 0.5
+     },
+     {
+      "weight": 11851,
+      "share": 0.25
+     }
+    ]
+   }
+  ],
+  [
+   {
+    "label": "auto"
+   },
+   {
+    "label": "auto_upm",
+    "users_pay_more": true
+   },
+   {
+    "label": "L0",
+    "fee_level": 0
+   },
+   {
+    "label": "L1",
+    "fee_level": 1
+   },
+   {
+    "label": "L2",
+    "fee_level": 2
+   },
+   {
+    "label": "L3",
+    "fee_level": 3
+   },
+   {
+    "label": "L4",
+    "fee_level": 4
+   }
+  ]
+ ],
+ "grid": {
+  "demand.surge_mult": [
+   2,
+   5,
+   10,
+   20,
+   50
+  ],
+  "demand.surge_blocks": [
+   30,
+   720,
+   5040
+  ]
+ }
+}

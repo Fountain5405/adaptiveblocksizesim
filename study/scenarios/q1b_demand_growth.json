@@ -1,0 +1,53 @@
+{
+ "name": "q1b_demand_growth",
+ "description": "Q1b: exponential demand growth from 38 tx/block; when does capacity fall behind?",
+ "series_every": 1000,
+ "seeds": 4,
+ "base": {
+  "blocks": 1314000,
+  "demand": {
+   "txs_per_block": 38,
+   "poisson": true
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "v16",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 2500
+     }
+    ]
+   },
+   {
+    "label": "v17",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   }
+  ],
+  [
+   {
+    "label": "auto"
+   },
+   {
+    "label": "auto_upm",
+    "users_pay_more": true
+   }
+  ]
+ ],
+ "grid": {
+  "demand.growth_per_year": [
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   9.0
+  ]
+ }
+}

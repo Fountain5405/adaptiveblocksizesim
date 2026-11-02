@@ -1,0 +1,124 @@
+{
+ "name": "q6_sensitivity",
+ "description": "Q6: full factorial over Z_M, clamp ratio, surge factor, T_R and tx weight (Custom rules = 2026 fee algorithm)",
+ "series_every": 0,
+ "seeds": 1,
+ "base": {
+  "rules": "custom",
+  "series": false
+ },
+ "cases": [
+  {
+   "label": "growth",
+   "blocks": 800000,
+   "demand": {
+    "fill_mult": 1.0
+   }
+  },
+  {
+   "label": "surge10x1d",
+   "blocks": 30000,
+   "demand": {
+    "txs_per_block": 38,
+    "poisson": true,
+    "surge_start": 5000,
+    "surge_blocks": 720,
+    "surge_mult": 10
+   }
+  },
+  {
+   "label": "surge50x1d",
+   "blocks": 30000,
+   "demand": {
+    "txs_per_block": 38,
+    "poisson": true,
+    "surge_start": 5000,
+    "surge_blocks": 720,
+    "surge_mult": 50
+   }
+  },
+  {
+   "label": "spam_mn_7d",
+   "blocks": 15000,
+   "demand": {
+    "txs_per_block": 38,
+    "poisson": true
+   },
+   "spam": {
+    "start": 1000,
+    "blocks": 5040,
+    "mode": "fill_to",
+    "target_mn": 1.0
+   }
+  },
+  {
+   "label": "spam_clamp",
+   "blocks": 600000,
+   "demand": {
+    "txs_per_block": 38,
+    "poisson": true
+   },
+   "spam": {
+    "start": 1000,
+    "mode": "fill_to",
+    "target_mn": 0.0,
+    "target_clamp": true
+   }
+  },
+  {
+   "label": "miner51_clamp",
+   "blocks": 600000,
+   "demand": {
+    "txs_per_block": 38,
+    "poisson": true
+   },
+   "miner_attack": {
+    "share": 0.51,
+    "start": 1000,
+    "target_clamp": true
+   }
+  }
+ ],
+ "grid": {
+  "params.z_m": [
+   300000,
+   625000,
+   1000000
+  ],
+  "params.lt_growth": [
+   1.1,
+   1.2,
+   1.4,
+   1.7
+  ],
+  "params.surge_factor": [
+   4,
+   8,
+   16,
+   50
+  ],
+  "params.t_r": [
+   3000,
+   10000,
+   12500,
+   20000
+  ],
+  "tx": [
+   [
+    {
+     "weight": 7650
+    }
+   ],
+   [
+    {
+     "weight": 9093
+    }
+   ],
+   [
+    {
+     "weight": 11851
+    }
+   ]
+  ]
+ }
+}

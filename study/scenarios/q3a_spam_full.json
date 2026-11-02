@@ -1,0 +1,88 @@
+{
+ "name": "q3a_spam_full",
+ "description": "Q3a: fee-paying spammer keeps blocks at M_N for 1/7/30 days; fill_to (no backlog) vs topup (keeps a block of backlog)",
+ "series_every": 100,
+ "seeds": 4,
+ "base": {
+  "blocks": 60000,
+  "demand": {
+   "txs_per_block": 38,
+   "poisson": true
+  },
+  "spam": {
+   "start": 5000,
+   "level": 0
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "v16",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 2500
+     }
+    ],
+    "spam": {
+     "weight": 2500
+    }
+   },
+   {
+    "label": "v16_9093",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ],
+    "spam": {
+     "weight": 9093
+    }
+   },
+   {
+    "label": "v17",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ],
+    "spam": {
+     "weight": 9093
+    }
+   }
+  ],
+  [
+   {
+    "label": "fill_to_L0",
+    "spam": {
+     "mode": "fill_to",
+     "target_mn": 1.0
+    }
+   },
+   {
+    "label": "topup_L0",
+    "spam": {
+     "mode": "topup",
+     "target_mn": 1.0
+    }
+   },
+   {
+    "label": "topup_auto",
+    "spam": {
+     "mode": "topup",
+     "target_mn": 1.0,
+     "level": "auto"
+    }
+   }
+  ]
+ ],
+ "grid": {
+  "spam.blocks": [
+   720,
+   5040,
+   21600
+  ]
+ }
+}

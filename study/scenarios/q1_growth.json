@@ -1,0 +1,83 @@
+{
+ "name": "q1_growth",
+ "description": "Q1: growth with demand permanently above capacity (fill_mult x max block weight each block)",
+ "series_every": 1000,
+ "base": {
+  "blocks": 1600000,
+  "demand": {
+   "fill_mult": 1.0
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "v16",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 2500
+     }
+    ]
+   },
+   {
+    "label": "v16_9093",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   },
+   {
+    "label": "v17",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   }
+  ],
+  [
+   {
+    "label": "fill",
+    "rational_miners": false
+   },
+   {
+    "label": "L0",
+    "fee_level": 0
+   },
+   {
+    "label": "L1",
+    "fee_level": 1
+   },
+   {
+    "label": "L2",
+    "fee_level": 2
+   },
+   {
+    "label": "L3",
+    "fee_level": 3
+   },
+   {
+    "label": "L4",
+    "fee_level": 4
+   },
+   {
+    "label": "auto",
+    "fee_level": "auto"
+   },
+   {
+    "label": "auto_upm",
+    "fee_level": "auto",
+    "users_pay_more": true
+   }
+  ]
+ ],
+ "grid": {
+  "demand.fill_mult": [
+   1.0,
+   0.55
+  ]
+ }
+}

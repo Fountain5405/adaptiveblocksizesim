@@ -1,0 +1,99 @@
+{
+ "name": "q3b_spam_growth",
+ "description": "Q3b/c: spammer raising M_L and adding bytes, 2 years of attack then 1 year of recovery",
+ "series_every": 500,
+ "seeds": 4,
+ "base": {
+  "blocks": 788400,
+  "demand": {
+   "txs_per_block": 38,
+   "poisson": true
+  },
+  "spam": {
+   "start": 1000,
+   "blocks": 525600,
+   "level": 0
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "v16",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 2500
+     }
+    ],
+    "spam": {
+     "weight": 2500
+    }
+   },
+   {
+    "label": "v16_9093",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ],
+    "spam": {
+     "weight": 9093
+    }
+   },
+   {
+    "label": "v17",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ],
+    "spam": {
+     "weight": 9093
+    }
+   }
+  ],
+  [
+   {
+    "label": "clamp_L0",
+    "spam": {
+     "mode": "fill_to",
+     "target_mn": 0.0,
+     "target_clamp": true
+    }
+   },
+   {
+    "label": "mn_L0",
+    "spam": {
+     "mode": "fill_to",
+     "target_mn": 1.0
+    }
+   },
+   {
+    "label": "topup_L0",
+    "spam": {
+     "mode": "topup",
+     "target_mn": 1.0
+    }
+   },
+   {
+    "label": "clamp_top",
+    "spam": {
+     "mode": "fill_to",
+     "target_mn": 0.0,
+     "target_clamp": true,
+     "level": "top"
+    }
+   },
+   {
+    "label": "surgecap_L0",
+    "spam": {
+     "mode": "fill_to",
+     "target_mn": 1.0,
+     "target_ml": 8.0
+    }
+   }
+  ]
+ ]
+}

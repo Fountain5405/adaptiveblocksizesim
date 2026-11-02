@@ -1,0 +1,4 @@
+{ "name": "p2_rational", "series_every": 500,
+  "base": { "blocks": 200000, "demand": { "fill_mult": 1.0 } },
+  "cases": [ {"label": "v16", "rules": "v16", "tx": [{"weight": 2500}]}, {"label": "v17", "rules": "v17"} ],
+  "grid": { "fee_level": ["auto", 0, 1, 2, 3, 4] } }

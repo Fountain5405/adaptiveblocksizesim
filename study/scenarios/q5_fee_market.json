@@ -1,0 +1,73 @@
+{
+ "name": "q5_fee_market",
+ "description": "Q5: steady demand at multiples of Z_M (Poisson), wallet fee choice",
+ "series_every": 100,
+ "seeds": 8,
+ "base": {
+  "blocks": 100000,
+  "demand": {
+   "poisson": true
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "v16",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 2500
+     }
+    ]
+   },
+   {
+    "label": "v17",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   }
+  ],
+  [
+   {
+    "label": "auto"
+   },
+   {
+    "label": "auto_upm",
+    "users_pay_more": true
+   },
+   {
+    "label": "L0",
+    "fee_level": 0
+   },
+   {
+    "label": "L1",
+    "fee_level": 1
+   },
+   {
+    "label": "L2",
+    "fee_level": 2
+   },
+   {
+    "label": "L3",
+    "fee_level": 3
+   },
+   {
+    "label": "L4",
+    "fee_level": 4
+   }
+  ]
+ ],
+ "grid": {
+  "demand.zm_mult": [
+   0.5,
+   0.8,
+   1.0,
+   1.2,
+   2.0,
+   5.0
+  ]
+ }
+}

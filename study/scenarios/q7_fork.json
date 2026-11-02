@@ -1,0 +1,136 @@
+{
+ "name": "q7_fork",
+ "description": "Q7: v16 -> v17 at block 2000 with pre-fork M_L at 300k..2M; reference code (no rescale) vs spec transitional rule",
+ "series_every": 10,
+ "base": {
+  "blocks": 202000,
+  "rules": "v16",
+  "tx": [
+   {
+    "weight": 2500
+   }
+  ],
+  "fork": {
+   "at": 2000,
+   "to": "v17",
+   "tx_after": [
+    {
+     "weight": 9093
+    }
+   ]
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "ML300k_same_txs",
+    "params": {
+     "initial_weight": 300000
+    },
+    "demand": {
+     "txs_per_block": 120.0
+    }
+   },
+   {
+    "label": "ML300k_base38",
+    "params": {
+     "initial_weight": 300000
+    },
+    "demand": {
+     "txs_per_block": 38
+    }
+   },
+   {
+    "label": "ML450k_same_txs",
+    "params": {
+     "initial_weight": 450000
+    },
+    "demand": {
+     "txs_per_block": 180.0
+    }
+   },
+   {
+    "label": "ML450k_base38",
+    "params": {
+     "initial_weight": 450000
+    },
+    "demand": {
+     "txs_per_block": 38
+    }
+   },
+   {
+    "label": "ML600k_same_txs",
+    "params": {
+     "initial_weight": 600000
+    },
+    "demand": {
+     "txs_per_block": 240.0
+    }
+   },
+   {
+    "label": "ML600k_base38",
+    "params": {
+     "initial_weight": 600000
+    },
+    "demand": {
+     "txs_per_block": 38
+    }
+   },
+   {
+    "label": "ML1000k_same_txs",
+    "params": {
+     "initial_weight": 1000000
+    },
+    "demand": {
+     "txs_per_block": 400.0
+    }
+   },
+   {
+    "label": "ML1000k_base38",
+    "params": {
+     "initial_weight": 1000000
+    },
+    "demand": {
+     "txs_per_block": 38
+    }
+   },
+   {
+    "label": "ML2000k_same_txs",
+    "params": {
+     "initial_weight": 2000000
+    },
+    "demand": {
+     "txs_per_block": 800.0
+    }
+   },
+   {
+    "label": "ML2000k_base38",
+    "params": {
+     "initial_weight": 2000000
+    },
+    "demand": {
+     "txs_per_block": 38
+    }
+   }
+  ],
+  [
+   {
+    "label": "auto"
+   },
+   {
+    "label": "fill_after",
+    "rational_miners": true,
+    "demand": {
+     "fill_mult": 1.0,
+     "fill_from": 2000
+    }
+   }
+  ]
+ ],
+ "grid": {
+  "fork.rescale": [
+   false,
+   true
+  ]
+ }
+}

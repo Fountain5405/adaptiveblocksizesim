@@ -1,0 +1,55 @@
+{
+ "name": "q7b_fork_mainnet",
+ "description": "Q7b: fork from the real mainnet windows (last 100k blocks)",
+ "series_every": 10,
+ "seeds": 4,
+ "base": {
+  "blocks": 202000,
+  "rules": "v16",
+  "init": "mainnet",
+  "tx": [
+   {
+    "weight": 2500
+   }
+  ],
+  "demand": {
+   "txs_per_block": 38,
+   "poisson": true
+  },
+  "fork": {
+   "at": 2000,
+   "to": "v17",
+   "tx_after": [
+    {
+     "weight": 9093
+    }
+   ]
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "base38"
+   },
+   {
+    "label": "x3",
+    "demand": {
+     "txs_per_block": 114
+    }
+   },
+   {
+    "label": "fill_after",
+    "demand": {
+     "fill_mult": 1.0,
+     "fill_from": 2000
+    }
+   }
+  ]
+ ],
+ "grid": {
+  "fork.rescale": [
+   false,
+   true
+  ]
+ }
+}

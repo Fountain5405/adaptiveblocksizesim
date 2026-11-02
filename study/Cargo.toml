@@ -1,0 +1,16 @@
+[package]
+name = "study"
+version = "0.1.0"
+edition = "2021"
+description = "Research harness for Monero block weight / fee rules (v16 vs v17), built on wasm_sim::lib_core"
+
+[dependencies]
+wasm-sim = { path = "../wasm-sim" }
+rayon = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+flate2 = "1"
+
+[profile.release]
+opt-level = 3
+debug = false

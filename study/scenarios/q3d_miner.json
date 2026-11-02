@@ -1,0 +1,68 @@
+{
+ "name": "q3d_miner",
+ "description": "Q3d: malicious miner with hashrate share h padding its blocks with zero-fee filler",
+ "series_every": 500,
+ "seeds": 8,
+ "base": {
+  "blocks": 526600,
+  "demand": {
+   "txs_per_block": 38,
+   "poisson": true
+  },
+  "miner_attack": {
+   "start": 1000,
+   "blocks": 262800
+  }
+ },
+ "cases": [
+  [
+   {
+    "label": "v16",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 2500
+     }
+    ]
+   },
+   {
+    "label": "v17",
+    "rules": "v17",
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   }
+  ],
+  [
+   {
+    "label": "pad_mn",
+    "miner_attack": {
+     "target_mn": 1.0
+    }
+   },
+   {
+    "label": "pad_clamp",
+    "miner_attack": {
+     "target_clamp": true
+    }
+   },
+   {
+    "label": "pad_max",
+    "miner_attack": {
+     "target_max": true
+    }
+   }
+  ]
+ ],
+ "grid": {
+  "miner_attack.share": [
+   0.1,
+   0.3,
+   0.45,
+   0.51,
+   0.6
+  ]
+ }
+}
