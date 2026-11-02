@@ -10,6 +10,9 @@
 
 use std::collections::{BTreeMap, VecDeque};
 
+/// Steppable simulator for research harnesses (built around the functions below, which it does not change).
+pub mod step;
+
 /// Rule presets. `RULES_CUSTOM` uses the 2026 fee algorithm with whatever parameters are set.
 pub const RULES_V16: u32 = 0;
 pub const RULES_V17: u32 = 1;
