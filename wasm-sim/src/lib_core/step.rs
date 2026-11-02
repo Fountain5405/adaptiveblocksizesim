@@ -8,13 +8,17 @@
 //! in the same order.
 //!
 //! Extensions over the core loop (all off by default, so the legacy path is unchanged):
-//!  - several transaction classes (weights); the pool is kept per fee level and class as FIFO
-//!    queues, so wait times can be measured;
+//!  - several transaction classes (weights). The pool is kept per fee level and class as FIFO
+//!    queues, so wait times can be measured. Within a fee level, blocks take transactions in
+//!    arrival order across classes, as monerod's pool (sorted by fee per byte, then receive time)
+//!    hands them to `fill_block_template`;
 //!  - transactions owned by a spam attacker, tracked separately;
 //!  - a block may be padded by its miner with zero-fee filler (malicious miner);
 //!  - the rule set can be switched between blocks, optionally rescaling pre-fork weights;
 //!  - the median windows can be initialised from a real chain history;
-//!  - pool transactions can expire after `pool_lifetime` blocks (monerod drops them after 3 days).
+//!  - pool transactions can expire after `pool_lifetime` blocks (monerod: 3 days), and the pool
+//!    can be capped at `pool_max_bytes` (monerod: 648 MB). Over the cap, the lowest fee level is
+//!    pruned first and, within it, the newest transactions, as `tx_memory_pool::prune` does.
 //!
 //! With one transaction class and the legacy demand, `run_legacy` reproduces
 //! `run_simulation_core` exactly (tests at the bottom).
@@ -23,6 +27,11 @@ use super::*;
 
 pub const OWNER_USER: usize = 0;
 pub const OWNER_SPAM: usize = 1;
+
+/// monerod's pool defaults (cryptonote_config.h): `CRYPTONOTE_MEMPOOL_TX_LIVETIME` (3 days) in
+/// blocks, and `DEFAULT_TXPOOL_MAX_WEIGHT` in bytes.
+pub const MONEROD_POOL_LIFETIME_BLOCKS: u32 = 3 * 720;
+pub const MONEROD_POOL_MAX_BYTES: i64 = 648_000_000;
 
 #[derive(Clone, Copy, Debug)]
 struct Entry {
@@ -48,6 +57,40 @@ pub struct Inclusion {
     pub class: u8,
     pub level: u8,
     pub fee_per_tx: f64,
+}
+
+/// Why pool transactions left the pool without being mined.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DropReason {
+    /// Older than `pool_lifetime`.
+    Expired,
+    /// Pruned because the pool was over `pool_max_bytes`.
+    Evicted,
+}
+
+/// Pool transactions dropped without being mined: `count` transactions of class `class` at fee
+/// level `level`, broadcast at block `arrival`.
+#[derive(Clone, Copy, Debug)]
+pub struct Dropped {
+    pub arrival: u32,
+    pub count: i64,
+    pub owner: u8,
+    pub class: u8,
+    pub level: u8,
+    pub reason: DropReason,
+}
+
+/// How the 2026 spec's transitional rule treats the pre-fork long-term weights. The spec scales
+/// pre-fork block weights by Z_M/Z_M_old in every median that spans the fork (M_L, M_S, M_N and
+/// the wallet's M_LW) and says "the medians are then calculated normally". Short-term windows hold
+/// block weights, so both modes scale them the same way.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RescaleMode {
+    /// Multiply the stored long-term weights, each already clamped under the old rules.
+    Stored,
+    /// Recompute them from the scaled block weights with the new rules' clamp, taken around the
+    /// pre-fork long-term median scaled the same way (and floored at the new Z_M).
+    Reclamped,
 }
 
 impl Queue {
@@ -93,6 +136,21 @@ impl Queue {
         self.by_owner[1] -= taken[1];
         taken
     }
+
+    /// Remove up to `n` of the newest transactions, from the newest batch only; returns
+    /// (arrival, owner, removed).
+    fn evict_back(&mut self, n: i64) -> (u32, usize, i64) {
+        let e = self.fifo.back_mut().expect("evict from an empty queue");
+        let k = e.count.min(n);
+        e.count -= k;
+        let (arrival, owner) = (e.arrival, e.owner as usize);
+        if e.count == 0 {
+            self.fifo.pop_back();
+        }
+        self.total -= k;
+        self.by_owner[owner] -= k;
+        (arrival, owner, k)
+    }
 }
 
 /// Limits and fee levels for the block about to be built.
@@ -136,6 +194,8 @@ pub struct BlockOutcome {
     pub rejected: [i64; 2],
     /// Transactions dropped from the pool this block because they were too old.
     pub expired: [i64; 2],
+    /// Transactions pruned from the pool this block because it was over its size cap.
+    pub evicted: [i64; 2],
     pub pool_bytes: [i64; 2],
 }
 
@@ -146,15 +206,22 @@ pub struct Sim {
     short_term: SlidingOrderStat,
     long_term_wallet: GraceMedian,
     short_term_wallet: GraceMedian,
+    /// Raw block weights of the blocks in the long-term window, oldest first (for rescaling).
+    raw_long: VecDeque<i64>,
     last10: VecDeque<i64>,
     pool: Vec<Vec<Queue>>, // [fee level][class]
     percent_response: f64,
     height: u32,
     ctx: Option<BlockContext>,
+    expired_now: [i64; 2],
     /// Inclusions of the last finished block.
     pub inclusions: Vec<Inclusion>,
+    /// Transactions dropped without being mined during the last block (expired, evicted).
+    pub drops: Vec<Dropped>,
     /// Drop pool transactions once they are this many blocks old (None: never, as in the core).
     pub pool_lifetime: Option<u32>,
+    /// Cap the pool at this many bytes (None: unbounded, as in the core).
+    pub pool_max_bytes: Option<i64>,
 }
 
 impl Sim {
@@ -172,26 +239,30 @@ impl Sim {
             short_term: SlidingOrderStat::median_of(sw, init),
             long_term_wallet: GraceMedian::new(lw, grace, init),
             short_term_wallet: GraceMedian::new(sw, grace.min(sw / 2 - 1), init),
+            raw_long: std::iter::repeat(init).take(lw).collect(),
             last10: VecDeque::with_capacity(11),
             pool: Vec::new(),
             percent_response: 0.0,
             height: 0,
             ctx: None,
+            expired_now: [0; 2],
             inclusions: Vec::new(),
+            drops: Vec::new(),
             pool_lifetime: None,
+            pool_max_bytes: None,
         }
     }
 
-    /// Chain whose windows hold a real history: `long_term_weights` and `block_weights`, oldest
-    /// first (only the latest window's worth of each is used; shorter histories are preceded by
-    /// `c.initial_weight`).
+    /// Chain whose windows hold a real history: `long_term_weights` and `block_weights` of the same
+    /// blocks, oldest first (only the latest window's worth of each is used; shorter histories are
+    /// preceded by `c.initial_weight`).
     pub fn with_history(c: SimulationConfig, classes: &[i64], long_term_weights: &[i64], block_weights: &[i64]) -> Self {
+        assert_eq!(long_term_weights.len(), block_weights.len(), "history columns differ in length");
         let mut s = Sim::new(c, classes);
-        for &w in long_term_weights {
-            s.long_term.push(w);
-            s.long_term_wallet.push(w);
-        }
-        for &w in block_weights {
+        for (&lt, &w) in long_term_weights.iter().zip(block_weights) {
+            s.long_term.push(lt);
+            s.long_term_wallet.push(lt);
+            s.push_raw_long(w);
             s.short_term.push(w);
             s.short_term_wallet.push(w);
             s.last10.push_back(w);
@@ -200,6 +271,13 @@ impl Sim {
             }
         }
         s
+    }
+
+    fn push_raw_long(&mut self, w: i64) {
+        self.raw_long.push_back(w);
+        if self.raw_long.len() > self.long_term.size {
+            self.raw_long.pop_front();
+        }
     }
 
     pub fn height(&self) -> u32 {
@@ -233,6 +311,14 @@ impl Sim {
         b
     }
 
+    /// Every pending batch in the pool: (arrival, owner, count).
+    pub fn pending(&self) -> impl Iterator<Item = (u32, usize, i64)> + '_ {
+        self.pool
+            .iter()
+            .flat_map(|lvl| lvl.iter())
+            .flat_map(|q| q.fifo.iter().map(|e| (e.arrival, e.owner as usize, e.count)))
+    }
+
     /// Arrival height of the oldest pending transaction of an owner.
     pub fn oldest_pending(&self, owner: usize) -> Option<u32> {
         let mut best: Option<u32> = None;
@@ -254,8 +340,37 @@ impl Sim {
         self.long_term.values.iter().copied()
     }
 
-    /// Step 1-2 of the core loop: medians, limits and fee levels for the next block.
+    /// Step 1-2 of the core loop: medians, limits and fee levels for the next block. Pool
+    /// transactions past `pool_lifetime` are dropped first, so callers see the pool as it is.
     pub fn begin_block(&mut self) -> BlockContext {
+        self.inclusions.clear();
+        self.drops.clear();
+        self.expired_now = [0; 2];
+        if let Some(life) = self.pool_lifetime {
+            let now = self.height;
+            for (k, lvl) in self.pool.iter_mut().enumerate() {
+                for (j, q) in lvl.iter_mut().enumerate() {
+                    while let Some(e) = q.fifo.front() {
+                        if e.arrival + life > now {
+                            break;
+                        }
+                        let e = q.fifo.pop_front().unwrap();
+                        q.total -= e.count;
+                        q.by_owner[e.owner as usize] -= e.count;
+                        self.expired_now[e.owner as usize] += e.count;
+                        self.drops.push(Dropped {
+                            arrival: e.arrival,
+                            count: e.count,
+                            owner: e.owner,
+                            class: j as u8,
+                            level: k as u8,
+                            reason: DropReason::Expired,
+                        });
+                    }
+                }
+            }
+        }
+
         let c = &self.c;
         let i = self.height as usize;
         // 1. Medians and limits for the next block (update_next_cumulative_weight_limit)
@@ -300,25 +415,8 @@ impl Sim {
         let levels = &ctx.levels;
         let nl = levels.len();
         let nc = self.classes.len();
-        let mut out = BlockOutcome::default();
-        self.inclusions.clear();
-
+        let mut out = BlockOutcome { expired: self.expired_now, ..Default::default() };
         let now = self.height;
-        if let Some(life) = self.pool_lifetime {
-            for lvl in self.pool.iter_mut() {
-                for q in lvl.iter_mut() {
-                    while let Some(e) = q.fifo.front() {
-                        if e.arrival + life > now {
-                            break;
-                        }
-                        q.total -= e.count;
-                        q.by_owner[e.owner as usize] -= e.count;
-                        out.expired[e.owner as usize] += e.count;
-                        q.fifo.pop_front();
-                    }
-                }
-            }
-        }
 
         // 3. New transactions
         let pool_bytes_all: i64 = self.pool_bytes().iter().sum();
@@ -365,18 +463,82 @@ impl Sim {
             }
         }
 
-        // 4. Build the block, highest fee level first
+        // 3b. Pool size cap (tx_memory_pool::prune after each add): drop from the lowest fee level
+        //     upwards and, within a level, the newest transactions first (larger ones first among
+        //     equally new ones), until the pool fits.
+        if let Some(cap) = self.pool_max_bytes {
+            let mut bytes: i64 = self.pool_bytes().iter().sum();
+            let mut k = 0;
+            while bytes > cap && k < nl {
+                let mut pick: Option<usize> = None;
+                for j in 0..nc {
+                    if let Some(e) = self.pool[k][j].fifo.back() {
+                        pick = match pick {
+                            Some(p) if {
+                                let b = self.pool[k][p].fifo.back().unwrap();
+                                b.arrival > e.arrival || (b.arrival == e.arrival && self.classes[p] > self.classes[j])
+                            } => Some(p),
+                            _ => Some(j),
+                        };
+                    }
+                }
+                let Some(j) = pick else {
+                    k += 1;
+                    continue;
+                };
+                let t = self.classes[j];
+                let need = (bytes - cap + t - 1) / t;
+                let (arrival, owner, removed) = self.pool[k][j].evict_back(need);
+                bytes -= removed * t;
+                out.evicted[owner] += removed;
+                self.drops.push(Dropped {
+                    arrival,
+                    count: removed,
+                    owner: owner as u8,
+                    class: j as u8,
+                    level: k as u8,
+                    reason: DropReason::Evicted,
+                });
+            }
+        }
+
+        // 4. Build the block, highest fee level first. Within a level, transactions go in arrival
+        //    order across classes (equally new ones: smaller first). A class whose next transaction
+        //    doesn't pay for its penalty, or doesn't fit, is passed over for the rest of the level,
+        //    as fill_block_template passes over it; smaller ones may still go in.
         let mut m_b: i64 = 0;
         let mut fees: f64 = 0.0;
+        let mut passed = vec![false; nc];
         for k in (0..nl).rev() {
-            for j in 0..nc {
+            passed.iter_mut().for_each(|p| *p = false);
+            loop {
+                let mut pick: Option<usize> = None;
+                let mut candidates = 0;
+                for j in 0..nc {
+                    if passed[j] || self.pool[k][j].total == 0 {
+                        continue;
+                    }
+                    candidates += 1;
+                    let a = self.pool[k][j].fifo.front().unwrap().arrival;
+                    pick = match pick {
+                        Some(p) if {
+                            let ap = self.pool[k][p].fifo.front().unwrap().arrival;
+                            ap < a || (ap == a && self.classes[p] < self.classes[j])
+                        } => Some(p),
+                        _ => Some(j),
+                    };
+                }
+                let Some(j) = pick else { break };
                 let t = self.classes[j];
                 let q = &mut self.pool[k][j];
                 let fee = levels[k] * t as f64;
+                // With one class left, offer its whole queue in one go: with a single class this is
+                // exactly the core's step. Otherwise one arrival batch at a time.
+                let avail = if candidates == 1 { q.total } else { q.fifo.front().unwrap().count };
                 let take = if c.rational_miners {
-                    affordable_txs(c.r_base, m_b, ctx.m_n, t, fee, ctx.m_b_max, q.total)
+                    affordable_txs(c.r_base, m_b, ctx.m_n, t, fee, ctx.m_b_max, avail)
                 } else {
-                    ((ctx.m_b_max - m_b) / t).min(q.total).max(0)
+                    ((ctx.m_b_max - m_b) / t).min(avail).max(0)
                 };
                 if take > 0 {
                     let by = q.take(take, now, j, k, fee, &mut self.inclusions);
@@ -388,6 +550,9 @@ impl Sim {
                 }
                 m_b += take * t;
                 fees += take as f64 * fee;
+                if take < avail {
+                    passed[j] = true;
+                }
             }
         }
         out.penalty_unpadded = penalty(c.r_base, m_b, ctx.m_n);
@@ -406,6 +571,7 @@ impl Sim {
         let long_term_weight = m_b.max(lower).min(upper);
         self.long_term.push(long_term_weight);
         self.long_term_wallet.push(long_term_weight);
+        self.push_raw_long(m_b);
         self.short_term.push(m_b);
         self.short_term_wallet.push(m_b);
         self.last10.push_back(m_b);
@@ -424,16 +590,27 @@ impl Sim {
     }
 
     /// Switch to another rule set between blocks (a hard fork), keeping the median windows.
-    /// With `rescale = Some((num, den))`, every weight already in the windows (consensus and
-    /// wallet, long-term and short-term) is multiplied by num/den, which is what the 2026 spec's
-    /// transitional rule does to pre-fork weights in medians that span the fork. `None` is the
-    /// reference code's behaviour: the windows carry across unchanged.
-    pub fn switch_rules(&mut self, new_c: SimulationConfig, rescale: Option<(i64, i64)>) {
+    /// With `rescale = Some((num, den))` the 2026 spec's transitional rule is applied: pre-fork
+    /// block weights count as weight × num/den in every median that spans the fork (consensus and
+    /// wallet, long- and short-term). Applying it once to every weight in the windows at the fork
+    /// is the same thing, since only pre-fork weights are in them. `mode` says how the long-term
+    /// weights are derived (see `RescaleMode`). `None` is the reference code's behaviour: the
+    /// windows carry across unchanged.
+    pub fn switch_rules(&mut self, new_c: SimulationConfig, rescale: Option<(i64, i64)>, mode: RescaleMode) {
         let scale = |w: i64| match rescale {
             Some((num, den)) => w * num / den,
             None => w,
         };
-        let lt: Vec<i64> = self.long_term.values.iter().map(|&w| scale(w)).collect();
+        let lt: Vec<i64> = match rescale {
+            Some((num, den)) if mode == RescaleMode::Reclamped => {
+                let ml_old = self.long_term.median().max(self.c.z_m);
+                let ml = (ml_old * num / den).max(new_c.z_m);
+                let lower = ml * new_c.lt_growth_den / new_c.lt_growth_num;
+                let upper = ml * new_c.lt_growth_num / new_c.lt_growth_den;
+                self.raw_long.iter().map(|&w| (w * num / den).max(lower).min(upper)).collect()
+            }
+            _ => self.long_term.values.iter().map(|&w| scale(w)).collect(),
+        };
         let st: Vec<i64> = self.short_term.values.iter().map(|&w| scale(w)).collect();
         let lw = new_c.long_window.max(2) as usize;
         let sw = new_c.short_window.max(2) as usize;
@@ -451,6 +628,9 @@ impl Sim {
         for &w in &st {
             self.short_term.push(w);
             self.short_term_wallet.push(w);
+        }
+        while self.raw_long.len() > lw {
+            self.raw_long.pop_front();
         }
         self.c = new_c;
     }
@@ -663,10 +843,85 @@ mod tests {
         let before = s.long_term.median();
         let mut c17 = SimulationConfig::preset(RULES_V17);
         c17.long_window = 1000;
-        s.switch_rules(c17, None);
+        s.switch_rules(c17, None, RescaleMode::Stored);
         assert_eq!(s.long_term.median(), before);
-        s.switch_rules(c17, Some((625_000, 300_000)));
+        s.switch_rules(c17, Some((625_000, 300_000)), RescaleMode::Stored);
         assert_eq!(s.long_term.median(), before * 625_000 / 300_000);
+    }
+
+    /// Mainnet-like windows: long-term weights at the old lower clamp, a tail of larger blocks.
+    #[test]
+    fn rescale_modes_treat_the_long_term_tail_differently() {
+        let mut c = SimulationConfig::preset(RULES_V16);
+        c.long_window = 1000;
+        let lt: Vec<i64> = (0..1000).map(|i| if i % 10 == 0 { 456_000 } else { 176_470 }).collect();
+        let bw: Vec<i64> = (0..1000).map(|i| if i % 10 == 0 { 456_000 } else { 100_000 }).collect();
+        let mut c17 = SimulationConfig::preset(RULES_V17);
+        c17.long_window = 1000;
+
+        let mut stored = Sim::with_history(c, &[2500], &lt, &bw);
+        stored.switch_rules(c17, Some((625_000, 300_000)), RescaleMode::Stored);
+        let w: Vec<i64> = stored.long_term_window().collect();
+        assert_eq!(*w.iter().max().unwrap(), 950_000);
+        assert_eq!(*w.iter().min().unwrap(), 367_645);
+
+        // M_L before = 300k (floor), scaled 625k: new bounds [625k·5/6, 625k·6/5]
+        let mut reclamped = Sim::with_history(c, &[2500], &lt, &bw);
+        reclamped.switch_rules(c17, Some((625_000, 300_000)), RescaleMode::Reclamped);
+        let w: Vec<i64> = reclamped.long_term_window().collect();
+        assert_eq!(*w.iter().max().unwrap(), 750_000);
+        assert_eq!(*w.iter().min().unwrap(), 520_833);
+        // the short-term window holds block weights, scaled the same way in both modes
+        assert_eq!(stored.short_term.median(), reclamped.short_term.median());
+    }
+
+    /// Two classes in a growing backlog at one fee level (demand above the 8× cap, so it can't
+    /// clear): neither may starve, and the outcome must not depend on the order the classes are
+    /// listed in.
+    #[test]
+    fn mixed_classes_are_mined_in_arrival_order() {
+        let mut c = SimulationConfig::preset(RULES_V17);
+        c.fee_level = 1;
+        let run = |classes: [i64; 2]| {
+            let mut s = Sim::new(c, &classes);
+            let mut max_wait = [0u32; 2];
+            let mut weights = Vec::new();
+            for _ in 0..3000 {
+                let _ = s.begin_block();
+                let o = s.finish_block(&[800, 800], &[], Miner::Honest);
+                weights.push(o.m_b);
+                for inc in &s.inclusions {
+                    let k = if classes[inc.class as usize] == 7650 { 0 } else { 1 };
+                    max_wait[k] = max_wait[k].max(inc.wait);
+                }
+            }
+            (weights, max_wait)
+        };
+        let (wa, ma) = run([7650, 9093]);
+        let (wb, mb) = run([9093, 7650]);
+        assert_eq!(wa, wb);
+        assert_eq!(ma, mb);
+        assert!(ma[1] > 100, "expected a backlog, waits {ma:?}");
+        assert!(ma[0].abs_diff(ma[1]) <= 2, "max waits by class: {ma:?}");
+    }
+
+    #[test]
+    fn pool_cap_prunes_lowest_level_newest_first() {
+        let c = SimulationConfig::preset(RULES_V17);
+        let mut s = Sim::new(c, &[9093]);
+        s.pool_max_bytes = Some(100 * 9093);
+        let _ = s.begin_block();
+        // 300 txs at the lowest level and 60 at level 2 arrive together; the pool keeps 100
+        let o = s.finish_block(&[], &[(0, 0, 300), (0, 2, 60)], Miner::Honest);
+        assert_eq!(o.evicted[OWNER_SPAM], 260);
+        assert!(s.drops.iter().all(|d| d.reason == DropReason::Evicted && d.level == 0));
+        assert!(s.inclusions.iter().any(|i| i.level == 2 && i.count == 60));
+        // next block: the new lowest-level arrivals are the newest, so they are pruned first
+        let _ = s.begin_block();
+        let o = s.finish_block(&[], &[(0, 0, 200)], Miner::Honest);
+        assert!(o.evicted[OWNER_SPAM] > 0);
+        assert!(s.drops.iter().all(|d| d.arrival == 1));
+        assert!(s.pool_bytes()[OWNER_SPAM] <= 100 * 9093);
     }
 
     #[test]
@@ -693,6 +948,7 @@ mod tests {
             // 200 txs per block: far more than fits, so a backlog builds and ages out
             let o = s.finish_block(&[200], &[], Miner::Honest);
             expired += o.expired[0];
+            assert!(s.drops.iter().all(|d| d.reason == DropReason::Expired && i - d.arrival >= 5));
             assert!(s.oldest_pending(OWNER_USER).map_or(true, |a| i - a < 5));
         }
         assert!(expired > 0);

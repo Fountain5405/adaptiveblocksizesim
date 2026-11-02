@@ -69,8 +69,21 @@ pub struct RunSpec {
     pub snapshots: Vec<u32>,
     /// Write the downsampled series for this run.
     pub series: bool,
-    /// Drop pool transactions after this many blocks (monerod: 3 days = 2160). Default: never.
+    /// Pool transactions older than this many blocks are dropped (monerod: CRYPTONOTE_MEMPOOL_TX_LIVETIME, 3 days). null = never.
+    #[serde(default = "pool_lifetime_default")]
     pub pool_lifetime: Option<u32>,
+    /// Pool size cap in bytes; above it the lowest fee level is pruned first, newest first (monerod: DEFAULT_TXPOOL_MAX_WEIGHT). null = unbounded.
+    #[serde(default = "pool_max_bytes_default")]
+    pub pool_max_bytes: Option<i64>,
+    /// Start of the steady-state measurement window: summary columns prefixed ss_ cover blocks, and transactions broadcast, from this block to the end.
+    pub measure_from: Option<u32>,
+}
+
+fn pool_lifetime_default() -> Option<u32> {
+    Some(2160)
+}
+fn pool_max_bytes_default() -> Option<i64> {
+    Some(648_000_000)
 }
 
 impl Default for RunSpec {
@@ -91,7 +104,9 @@ impl Default for RunSpec {
             init: "steady".into(),
             snapshots: Vec::new(),
             series: true,
-            pool_lifetime: None,
+            pool_lifetime: pool_lifetime_default(),
+            pool_max_bytes: pool_max_bytes_default(),
+            measure_from: None,
         }
     }
 }
@@ -249,13 +264,15 @@ pub struct Fork {
     pub params: Params,
     /// Rescale pre-fork weights by new Z_M / old Z_M (the spec's transitional rule).
     pub rescale: bool,
+    /// How the spec's transitional rule treats pre-fork long-term weights: "stored" multiplies the stored long-term weights; "reclamped" recomputes them from the scaled block weights with the new rules' clamp. Short-term block weights are scaled in both.
+    pub rescale_mode: String,
     /// Transaction mix after the fork (default: unchanged).
     pub tx_after: Vec<TxClass>,
 }
 
 impl Default for Fork {
     fn default() -> Self {
-        Fork { at: 0, to: "v17".into(), params: Params::default(), rescale: false, tx_after: Vec::new() }
+        Fork { at: 0, to: "v17".into(), params: Params::default(), rescale: false, rescale_mode: "stored".into(), tx_after: Vec::new() }
     }
 }
 

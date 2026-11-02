@@ -5,8 +5,9 @@ use crate::spec::*;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::io::Write;
-use wasm_sim::lib_core::step::{BlockContext, Miner, Sim, StudyRng, OWNER_SPAM, OWNER_USER};
+use wasm_sim::lib_core::step::{BlockContext, DropReason, Miner, RescaleMode, Sim, StudyRng, OWNER_SPAM, OWNER_USER};
 use wasm_sim::lib_core::{SimulationConfig, FEE_LEVEL_AUTO, RULES_CUSTOM, RULES_V16, RULES_V17};
 
 pub const DAY: u32 = 720;
@@ -80,11 +81,11 @@ pub fn build_config(spec: &RunSpec, rules: &str, params: &Params) -> Result<Simu
     Ok(c)
 }
 
-/// Exact wait-time histogram (blocks), with an overflow bin past 60 days.
+/// Exact wait-time histogram (blocks): dense up to 60 days, sparse beyond.
 #[derive(Clone)]
 pub struct Hist {
     bins: Vec<u64>,
-    over: u64,
+    over: BTreeMap<u32, u64>,
     pub max: u32,
     pub n: u64,
     sum: f64,
@@ -92,14 +93,14 @@ pub struct Hist {
 
 impl Hist {
     fn new() -> Self {
-        Hist { bins: vec![0; 60 * DAY as usize + 1], over: 0, max: 0, n: 0, sum: 0.0 }
+        Hist { bins: vec![0; 60 * DAY as usize + 1], over: BTreeMap::new(), max: 0, n: 0, sum: 0.0 }
     }
     fn add(&mut self, wait: u32, count: i64) {
         let c = count as u64;
         if (wait as usize) < self.bins.len() {
             self.bins[wait as usize] += c;
         } else {
-            self.over += c;
+            *self.over.entry(wait).or_insert(0) += c;
         }
         self.max = self.max.max(wait);
         self.n += c;
@@ -120,14 +121,89 @@ impl Hist {
                 return Some(i as u32);
             }
         }
+        for (&w, &b) in &self.over {
+            acc += b;
+            if acc >= target {
+                return Some(w);
+            }
+        }
         Some(self.max)
     }
+    /// Transactions that waited at most `blocks`.
+    fn count_within(&self, blocks: u32) -> u64 {
+        let dense: u64 = self.bins.iter().take(blocks as usize + 1).sum();
+        let sparse: u64 = self.over.range(..=blocks).map(|(_, &b)| b).sum();
+        dense + sparse
+    }
     fn share_within(&self, blocks: u32) -> Option<f64> {
-        if self.n == 0 {
-            return None;
+        (self.n > 0).then(|| self.count_within(blocks) as f64 / self.n as f64)
+    }
+}
+
+/// What happened to the user transactions broadcast in blocks [from, to): mined (with waits and
+/// fees), rejected by the relay minimum, expired, evicted from a full pool, or still pending.
+struct Cohort {
+    from: u32,
+    to: u32,
+    hist: Hist,
+    fees: f64,
+    bytes: i64,
+    level_counts: [i64; 5],
+    arrived: i64,
+    rejected: i64,
+    expired: i64,
+    evicted: i64,
+    pending_end: i64,
+}
+
+impl Cohort {
+    fn new(from: u32, to: u32) -> Self {
+        Cohort {
+            from,
+            to,
+            hist: Hist::new(),
+            fees: 0.0,
+            bytes: 0,
+            level_counts: [0; 5],
+            arrived: 0,
+            rejected: 0,
+            expired: 0,
+            evicted: 0,
+            pending_end: 0,
         }
-        let s: u64 = self.bins.iter().take(blocks as usize + 1).sum();
-        Some(s as f64 / self.n as f64)
+    }
+    fn has(&self, arrival: u32) -> bool {
+        arrival >= self.from && arrival < self.to
+    }
+    fn mined(&self) -> i64 {
+        self.hist.n as i64
+    }
+    /// Summary columns, prefixed `p_`. Waits and fees are over mined transactions; `served_within`
+    /// and the shares are over everything broadcast.
+    fn put(&self, r: &mut Row, p: &str) {
+        let h = &self.hist;
+        let mined = self.mined();
+        let share = |x: i64| (self.arrived > 0).then(|| format!("{:.6}", x as f64 / self.arrived as f64));
+        r.put(&format!("{p}_arrived"), self.arrived);
+        r.put(&format!("{p}_txs_included"), mined);
+        r.put(&format!("{p}_rejected"), self.rejected);
+        r.put(&format!("{p}_expired"), self.expired);
+        r.put(&format!("{p}_evicted"), self.evicted);
+        r.put(&format!("{p}_pending_end"), self.pending_end);
+        r.opt(&format!("{p}_mined_share"), share(mined));
+        r.opt(&format!("{p}_dropped_share"), share(self.rejected + self.expired + self.evicted));
+        r.opt(&format!("{p}_wait_mean"), h.mean().map(|x| format!("{x:.3}")));
+        r.opt(&format!("{p}_wait_p50"), h.pct(0.5));
+        r.opt(&format!("{p}_wait_p90"), h.pct(0.9));
+        r.opt(&format!("{p}_wait_p99"), h.pct(0.99));
+        r.put(&format!("{p}_wait_max"), h.max);
+        for b in [10u32, 30, 720, 2160] {
+            r.opt(&format!("{p}_share_within_{b}"), h.share_within(b).map(|x| format!("{x:.6}")));
+            r.opt(&format!("{p}_served_within_{b}"), share(h.count_within(b) as i64));
+        }
+        r.opt(&format!("{p}_fee_per_tx"), (mined > 0).then(|| format!("{:e}", self.fees / mined as f64)));
+        r.opt(&format!("{p}_fee_per_byte"), (self.bytes > 0).then(|| format!("{:e}", self.fees / self.bytes as f64)));
+        r.put(&format!("{p}_level_counts"), self.level_counts.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
     }
 }
 
@@ -225,7 +301,10 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     };
 
     sim.pool_lifetime = spec.pool_lifetime;
+    sim.pool_max_bytes = spec.pool_max_bytes;
     let mut expired = [0i64; 2];
+    let mut evicted = [0i64; 2];
+    let mut arrived_user: i64 = 0;
     let mut rng_demand = StudyRng::new(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ 0x1234_5678);
     let mut rng_miner = StudyRng::new(seed.wrapping_mul(0xD1B5_4A32_D192_ED03) ^ 0xABCD_EF01);
     let mut carry = vec![0.0f64; classes.len()];
@@ -246,6 +325,13 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     } else {
         None
     };
+    // Transaction cohorts by broadcast block: the event window, the time before it, and the
+    // steady-state measurement window. Empty ranges when not applicable, so every run in a
+    // scenario has the same columns.
+    let mut win = event_window.as_ref().map_or(Cohort::new(0, 0), |w| Cohort::new(w.start, w.end));
+    let mut pre = event_window.as_ref().map_or(Cohort::new(0, 0), |w| Cohort::new(0, w.start));
+    let measure_from = spec.measure_from;
+    let mut ss = measure_from.map_or(Cohort::new(0, 0), |f| Cohort::new(f, n));
 
     // series output
     let mut series = match (series_path, spec.series && series_every > 0) {
@@ -260,11 +346,6 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
 
     let mut events: Vec<String> = Vec::new();
     let mut hist_all = Hist::new();
-    let mut hist_win = Hist::new();
-    let mut win_fees = 0.0f64;
-    let mut win_bytes: i64 = 0;
-    let mut win_txs: i64 = 0;
-    let mut win_level_counts = vec![0i64; 5];
 
     // accumulators
     let mut chain_bytes: i64 = 0;
@@ -289,6 +370,9 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     let mut spam_blocks_at_mn: u32 = 0;
     let mut win_blocks: u32 = 0;
     let mut win_full_blocks: u32 = 0;
+    // steady-state window, block side
+    let (mut ss_blocks, mut ss_over, mut ss_over_ratio, mut ss_mn_sum, mut ss_mb_sum) = (0u64, 0u64, 0.0f64, 0.0f64, 0.0f64);
+    let (mut ss_ml_start, mut ss_ml_end) = (0i64, 0i64);
     // event-window state
     let mut base_ml = 0i64;
     let mut base_mn = 0i64;
@@ -333,7 +417,12 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
                 let nc = build_config(spec, &f.to, &f.params)?;
                 let old_zm = sim.c.z_m;
                 let rescale = f.rescale.then_some((nc.z_m, old_zm));
-                sim.switch_rules(nc, rescale);
+                let mode = match f.rescale_mode.as_str() {
+                    "stored" => RescaleMode::Stored,
+                    "reclamped" => RescaleMode::Reclamped,
+                    o => return Err(format!("unknown fork.rescale_mode {o}")),
+                };
+                sim.switch_rules(nc, rescale, mode);
                 let (s2, a2) = shares_of(&tx_after);
                 shares = s2;
                 avg_w = a2;
@@ -479,10 +568,12 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
         spam_txs += o.txs_by_owner[OWNER_SPAM];
         total_fees += o.fees;
         total_penalty += o.penalty;
-        rejected[0] += o.rejected[0];
-        rejected[1] += o.rejected[1];
-        expired[0] += o.expired[0];
-        expired[1] += o.expired[1];
+        arrived_user += o.broadcast_count;
+        for k in 0..2 {
+            rejected[k] += o.rejected[k];
+            expired[k] += o.expired[k];
+            evicted[k] += o.evicted[k];
+        }
         if is_attacker {
             miner_blocks += 1;
             miner_pen_total += o.penalty;
@@ -519,26 +610,62 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
                 ev(&mut events, i, &format!("m_l_{m}x"), &ctx, o.m_b, o.pool_bytes, spam_spent, miner_pen_extra);
             }
         }
+
+        // ---- what happened to user transactions, by the block they were broadcast in ----
+        for coh in [&mut win, &mut pre, &mut ss] {
+            if coh.has(i) {
+                coh.arrived += o.broadcast_count;
+                coh.rejected += o.rejected[OWNER_USER];
+            }
+        }
         for inc in &sim.inclusions {
-            if inc.owner as usize == OWNER_USER {
-                hist_all.add(inc.wait, inc.count);
-                s_incl += inc.count;
-                s_wait += inc.wait as f64 * inc.count as f64;
-                let arrival = i - inc.wait;
-                if let Some(w) = &event_window {
-                    if arrival >= w.start && arrival < w.end {
-                        hist_win.add(inc.wait, inc.count);
-                        win_fees += inc.fee_per_tx * inc.count as f64;
-                        win_bytes += sim.classes()[inc.class as usize] * inc.count;
-                        win_txs += inc.count;
-                        let l = (inc.level as usize).min(4);
-                        win_level_counts[l] += inc.count;
+            if inc.owner as usize != OWNER_USER {
+                continue;
+            }
+            hist_all.add(inc.wait, inc.count);
+            s_incl += inc.count;
+            s_wait += inc.wait as f64 * inc.count as f64;
+            let arrival = i - inc.wait;
+            let inc_bytes = sim.classes()[inc.class as usize] * inc.count;
+            for coh in [&mut win, &mut pre, &mut ss] {
+                if coh.has(arrival) {
+                    coh.hist.add(inc.wait, inc.count);
+                    coh.fees += inc.fee_per_tx * inc.count as f64;
+                    coh.bytes += inc_bytes;
+                    coh.level_counts[(inc.level as usize).min(4)] += inc.count;
+                }
+            }
+        }
+        for dr in &sim.drops {
+            if dr.owner as usize != OWNER_USER {
+                continue;
+            }
+            for coh in [&mut win, &mut pre, &mut ss] {
+                if coh.has(dr.arrival) {
+                    match dr.reason {
+                        DropReason::Expired => coh.expired += dr.count,
+                        DropReason::Evicted => coh.evicted += dr.count,
                     }
                 }
             }
         }
         if o.m_b > ctx.m_n {
             s_over += 1;
+        }
+        if let Some(f) = measure_from {
+            if i >= f {
+                if i == f {
+                    ss_ml_start = ctx.m_l;
+                }
+                ss_ml_end = ctx.m_l;
+                ss_blocks += 1;
+                ss_mn_sum += ctx.m_n as f64;
+                ss_mb_sum += o.m_b as f64;
+                if o.m_b > ctx.m_n {
+                    ss_over += 1;
+                    ss_over_ratio += o.m_b as f64 / ctx.m_n as f64;
+                }
+            }
         }
 
         // event window bookkeeping
@@ -659,6 +786,23 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     if let Some(g) = series {
         g.finish().map_err(|e| e.to_string())?.flush().map_err(|e| e.to_string())?;
     }
+    // transactions still in the pool at the end
+    for (arrival, owner, count) in sim.pending() {
+        if owner != OWNER_USER {
+            continue;
+        }
+        for coh in [&mut win, &mut pre, &mut ss] {
+            if coh.has(arrival) {
+                coh.pending_end += count;
+            }
+        }
+    }
+    for (name, coh) in [("win", &win), ("pre", &pre), ("ss", &ss)] {
+        let accounted = coh.mined() + coh.rejected + coh.expired + coh.evicted + coh.pending_end;
+        if accounted != coh.arrived {
+            return Err(format!("{name} cohort: {} broadcast but {accounted} accounted for", coh.arrived));
+        }
+    }
 
     // ---- summary ----
     let ctx = last_ctx.unwrap();
@@ -702,6 +846,7 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     r.opt("wait_p99", hist_all.pct(0.99));
     r.put("wait_max", hist_all.max);
     let pc = sim.pool_count();
+    r.put("arrived_user_txs", arrived_user);
     r.put("pending_user_txs_end", pc[OWNER_USER]);
     r.put("pending_user_bytes_end", sim.pool_bytes()[OWNER_USER]);
     r.opt("oldest_pending_age_end", sim.oldest_pending(OWNER_USER).map(|a| n - a));
@@ -710,6 +855,10 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     r.put("rejected_spam_txs", rejected[1]);
     r.put("expired_user_txs", expired[0]);
     r.put("expired_spam_txs", expired[1]);
+    r.put("evicted_user_txs", evicted[0]);
+    r.put("evicted_spam_txs", evicted[1]);
+    r.opt("pool_lifetime", spec.pool_lifetime);
+    r.opt("pool_max_bytes", spec.pool_max_bytes);
     r.put("total_fees_xmr", format!("{total_fees:.9}"));
     r.put("total_penalty_xmr", format!("{total_penalty:.9}"));
     r.put("honest_penalty_xmr", format!("{honest_penalty:.9}"));
@@ -760,17 +909,17 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
         r.opt(&format!("win_plus{mo}mo_m_n"), s.map(|s| s.2));
         r.opt(&format!("win_plus{mo}mo_fee_low"), s.map(|s| format!("{:e}", s.3)));
     }
-    r.put("win_txs_included", win_txs);
-    r.opt("win_wait_mean", hist_win.mean().map(|x| format!("{x:.3}")));
-    r.opt("win_wait_p50", hist_win.pct(0.5));
-    r.opt("win_wait_p90", hist_win.pct(0.9));
-    r.opt("win_wait_p99", hist_win.pct(0.99));
-    r.put("win_wait_max", hist_win.max);
-    r.opt("win_share_within_10", hist_win.share_within(10).map(|x| format!("{x:.6}")));
-    r.opt("win_share_within_720", hist_win.share_within(720).map(|x| format!("{x:.6}")));
-    r.opt("win_share_within_2160", hist_win.share_within(2160).map(|x| format!("{x:.6}")));
-    r.opt("win_fee_per_tx", (win_txs > 0).then(|| format!("{:e}", win_fees / win_txs as f64)));
-    r.opt("win_fee_per_byte", (win_bytes > 0).then(|| format!("{:e}", win_fees / win_bytes as f64)));
-    r.put("win_level_counts", win_level_counts.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));
+    win.put(&mut r, "win");
+    pre.put(&mut r, "pre");
+    // steady-state window
+    r.opt("ss_from", measure_from);
+    r.put("ss_blocks", ss_blocks);
+    r.put("ss_m_l_start", ss_ml_start);
+    r.put("ss_m_l_end", ss_ml_end);
+    r.opt("ss_m_n_mean", (ss_blocks > 0).then(|| format!("{:.0}", ss_mn_sum / ss_blocks as f64)));
+    r.opt("ss_m_b_mean", (ss_blocks > 0).then(|| format!("{:.0}", ss_mb_sum / ss_blocks as f64)));
+    r.opt("ss_over_mn_share", (ss_blocks > 0).then(|| format!("{:.6}", ss_over as f64 / ss_blocks as f64)));
+    r.opt("ss_over_mn_mean_ratio", (ss_over > 0).then(|| format!("{:.6}", ss_over_ratio / ss_over as f64)));
+    ss.put(&mut r, "ss");
     Ok(RunOutput { summary: r, events })
 }

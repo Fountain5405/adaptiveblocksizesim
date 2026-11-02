@@ -1,14 +1,15 @@
 {
  "name": "q5_fee_market",
- "description": "Q5: steady demand at multiples of Z_M (Poisson), wallet fee choice",
- "series_every": 100,
+ "description": "Q5 equilibrium: constant Poisson demand at multiples of Z_M, run until M_L has stopped moving (800,000 blocks); columns prefixed ss_ cover the last 100,000 blocks.",
+ "series_every": 1000,
  "series_seeds": 2,
- "seeds": 16,
+ "seeds": 8,
  "base": {
-  "blocks": 100000,
+  "blocks": 800000,
   "demand": {
    "poisson": true
-  }
+  },
+  "measure_from": 700000
  },
  "cases": [
   [

@@ -1,6 +1,6 @@
 {
  "name": "q2_surge",
- "description": "Q2: demand surges from 38 tx/block (Poisson)",
+ "description": "Q2: demand surges from 38 tx/block (Poisson) Pool: monerod defaults (648 MB cap, 3-day expiry).",
  "series_every": 50,
  "series_seeds": 2,
  "seeds": 16,

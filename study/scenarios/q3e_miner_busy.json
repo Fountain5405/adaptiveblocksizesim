@@ -1,0 +1,17 @@
+{
+  "name": "q3e_miner_busy",
+  "description": "Q3 follow-up: can a minority miner padding its blocks to the clamp move M_L when honest demand is close to the penalty-free zone? Honest demand is a multiple of Z_M; share 0 is the no-attack baseline.",
+  "seeds": 8,
+  "series_every": 0,
+  "base": {
+    "blocks": 263800,
+    "series": false,
+    "demand": {"poisson": true},
+    "miner_attack": {"start": 1000, "blocks": 262800, "target_clamp": true}
+  },
+  "cases": [
+    {"label": "v16", "rules": "v16", "tx": [{"weight": 2500}]},
+    {"label": "v17", "rules": "v17", "tx": [{"weight": 9093}]}
+  ],
+  "grid": {"demand.zm_mult": [0.5, 0.8, 0.9, 0.95], "miner_attack.share": [0.0, 0.3, 0.45]}
+}

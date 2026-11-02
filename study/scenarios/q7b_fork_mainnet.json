@@ -45,12 +45,29 @@
      "fill_from": 2000
     }
    }
+  ],
+  [
+   {
+    "label": "ref",
+    "fork": {
+     "rescale": false
+    }
+   },
+   {
+    "label": "spec",
+    "fork": {
+     "rescale": true,
+     "rescale_mode": "stored"
+    }
+   },
+   {
+    "label": "spec_reclamped",
+    "fork": {
+     "rescale": true,
+     "rescale_mode": "reclamped"
+    }
+   }
   ]
  ],
- "grid": {
-  "fork.rescale": [
-   false,
-   true
-  ]
- }
+ "grid": {}
 }

@@ -22,8 +22,8 @@ echo "== building"
 cargo build --release
 
 echo "== scenarios"
-for s in q1_growth q1b_demand_growth q2_surge q3a_spam_full q3b_spam_growth q3d_miner \
-         q4_recovery q5_fee_market q5b_daily q6_sensitivity q7_fork q7b_fork_mainnet; do
+for s in q1_growth q1b_demand_growth q2_surge q2b_pool q3a_spam_full q3b_spam_growth q3d_miner q3e_miner_busy \
+         q4_recovery q5_fee_market q5c_step q5b_daily q6_sensitivity q7_fork q7b_fork_mainnet; do
   ./target/release/study "scenarios/$s.json" --out results
 done
 
