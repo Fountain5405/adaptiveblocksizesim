@@ -17,7 +17,10 @@ use std::time::Instant;
 
 fn git_commit() -> String {
     let rev = std::process::Command::new("git").args(["rev-parse", "HEAD"]).output();
-    let dirty = std::process::Command::new("git").args(["status", "--porcelain", "--untracked-files=no"]).output();
+    // Generated outputs don't count: only uncommitted code or scenario changes make a run "dirty".
+    let dirty = std::process::Command::new("git")
+        .args(["status", "--porcelain", "--untracked-files=no", "--", ":(top,exclude)study/results", ":(top,exclude)study/tables", ":(top,exclude)study/figures"])
+        .output();
     match (rev, dirty) {
         (Ok(r), Ok(d)) => {
             let mut s = String::from_utf8_lossy(&r.stdout).trim().to_string();
