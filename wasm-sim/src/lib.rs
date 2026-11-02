@@ -3,288 +3,160 @@
 
 pub mod lib_core;
 
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 use lib_core::{run_simulation_core, SimulationConfig as CoreConfig, SimulationResults as CoreResults};
 
-// Global buffers for results (WASM memory)
-static mut RESULT_M_B: Vec<i64> = Vec::new();
-static mut RESULT_M_L: Vec<i64> = Vec::new();
-static mut RESULT_M_S: Vec<i64> = Vec::new();
-static mut RESULT_M_N: Vec<i64> = Vec::new();
-static mut RESULT_INPUT_VOL: Vec<i64> = Vec::new();
-static mut RESULT_BLOCK_FEE: Vec<f64> = Vec::new();
-static mut RESULT_PENALTY: Vec<f64> = Vec::new();
-static mut RESULT_MEMPOOL: Vec<i64> = Vec::new();
-static mut RESULT_INDICES: Vec<u32> = Vec::new();
+thread_local! {
+    static LAST: RefCell<Option<CoreResults>> = RefCell::new(None);
+}
 
-// Stats
-static mut STATS_MAX_MB: i64 = 0;
-static mut STATS_MAX_PENALTY: f64 = 0.0;
-static mut STATS_MAX_MEMPOOL: i64 = 0;
-static mut STATS_CUMULATIVE_FEES: f64 = 0.0;
-
-/// Simulation configuration structure (WASM wrapper)
+/// Simulation configuration (WASM wrapper).
+/// Create one from a rule preset, then set any fields to change from the preset:
+///   const c = new SimulationConfig(1); c.n = 300000; c.t_sim = 9093;
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct SimulationConfig {
     pub n: u32,
-    pub steady_state: i64,
+    pub rules: u32,
     pub z_m: i64,
+    pub lt_growth_num: i64,
+    pub lt_growth_den: i64,
+    pub surge_factor: i64,
+    pub long_window: u32,
+    pub short_window: u32,
+    pub initial_weight: i64,
+    pub sanity_cap: bool,
+    pub sanity_start_weight: i64,
+    pub sanity_start_block: u32,
     pub t_r: i64,
+    pub min_fee_fraction: f64,
+    pub wallet_grace_blocks: u32,
+    pub fee_rounding_digits: u32,
+    pub fee_level: i32,
     pub r_base: f64,
-    pub mid_100k: u32,
-    pub mid_100: u32,
     pub t_sim: i64,
     pub run_type: u32,
     pub ramp_multiplier: f64,
-    pub ml_mult: f64,
-    pub mn_mult: f64,
     pub add_noise: bool,
     pub users_pay_more: bool,
-    pub simple_blocks: bool,
-    pub large_sim_mode: bool,
-    pub exact_median: bool,
-    pub max_blocksize: i64,
-    pub max_blocksize_growth_rate: f64,
-    pub use_long_term_median_cap: bool,
-    pub sanity_start_weight: i64,
-    pub sanity_start_block: u32,
-    // NEW: Monero scaling 2025 parameters
-    pub use_new_scaling_rules: bool,  // Toggle between old and new rules
-    pub z_m_old: i64,              // Old Z_M for transitional calculations
-    pub ms_cap_multiplier: f64,      // M_S cap: old=50.0, new=8.0
-    pub min_fee_percentage: f64,      // Old=0.95, new=1.0 (100%)
-    pub wallet_grace_period: u32,     // Old=10, new=1000 blocks
-    pub fee_level_count: u32,        // Old=4, new=5 levels
-    pub fee_rounding_digits: u32,    // Number of significant digits for rounding
+    pub rational_miners: bool,
 }
 
 #[wasm_bindgen]
 impl SimulationConfig {
+    /// rules: 0 = v16 (mainnet, 2021 scaling), 1 = v17 (FCMP++, 2026 scaling), 2 = custom
     #[wasm_bindgen(constructor)]
-    pub fn new(
-        n: u32,
-        steady_state: i64,
-        z_m: i64,
-        t_r: i64,
-        r_base: f64,
-        mid_100k: u32,
-        mid_100: u32,
-        t_sim: i64,
-        run_type: u32,
-        ramp_multiplier: f64,
-        ml_mult: f64,
-        mn_mult: f64,
-        add_noise: bool,
-        users_pay_more: bool,
-        simple_blocks: bool,
-        large_sim_mode: bool,
-        exact_median: bool,
-        max_blocksize: i64,
-        max_blocksize_growth_rate: f64,
-        use_long_term_median_cap: bool,
-        sanity_start_weight: i64,
-        sanity_start_block: u32,
-        // NEW: Monero scaling 2025 parameters
-        use_new_scaling_rules: bool,
-        z_m_old: i64,
-        ms_cap_multiplier: f64,
-        min_fee_percentage: f64,
-        wallet_grace_period: u32,
-        fee_level_count: u32,
-        fee_rounding_digits: u32,
-    ) -> SimulationConfig {
+    pub fn new(rules: u32) -> SimulationConfig {
+        CoreConfig::preset(rules).into()
+    }
+}
+
+impl From<CoreConfig> for SimulationConfig {
+    fn from(c: CoreConfig) -> Self {
         SimulationConfig {
-            n,
-            steady_state,
-            z_m,
-            t_r,
-            r_base,
-            mid_100k,
-            mid_100,
-            t_sim,
-            run_type,
-            ramp_multiplier,
-            ml_mult,
-            mn_mult,
-            add_noise,
-            users_pay_more,
-            simple_blocks,
-            large_sim_mode,
-            exact_median,
-            max_blocksize,
-            max_blocksize_growth_rate,
-            use_long_term_median_cap,
-            sanity_start_weight,
-            sanity_start_block,
-            // NEW: Monero scaling 2025 parameters
-            use_new_scaling_rules,
-            z_m_old,
-            ms_cap_multiplier,
-            min_fee_percentage,
-            wallet_grace_period,
-            fee_level_count,
-            fee_rounding_digits,
+            n: c.n,
+            rules: c.rules,
+            z_m: c.z_m,
+            lt_growth_num: c.lt_growth_num,
+            lt_growth_den: c.lt_growth_den,
+            surge_factor: c.surge_factor,
+            long_window: c.long_window,
+            short_window: c.short_window,
+            initial_weight: c.initial_weight,
+            sanity_cap: c.sanity_cap,
+            sanity_start_weight: c.sanity_start_weight,
+            sanity_start_block: c.sanity_start_block,
+            t_r: c.t_r,
+            min_fee_fraction: c.min_fee_fraction,
+            wallet_grace_blocks: c.wallet_grace_blocks,
+            fee_rounding_digits: c.fee_rounding_digits,
+            fee_level: c.fee_level,
+            r_base: c.r_base,
+            t_sim: c.t_sim,
+            run_type: c.run_type,
+            ramp_multiplier: c.ramp_multiplier,
+            add_noise: c.add_noise,
+            users_pay_more: c.users_pay_more,
+            rational_miners: c.rational_miners,
         }
     }
 }
 
 impl From<SimulationConfig> for CoreConfig {
-    fn from(config: SimulationConfig) -> Self {
+    fn from(c: SimulationConfig) -> Self {
         CoreConfig {
-            n: config.n,
-            steady_state: config.steady_state,
-            z_m: config.z_m,
-            t_r: config.t_r,
-            r_base: config.r_base,
-            mid_100k: config.mid_100k,
-            mid_100: config.mid_100,
-            t_sim: config.t_sim,
-            run_type: config.run_type,
-            ramp_multiplier: config.ramp_multiplier,
-            ml_mult: config.ml_mult,
-            mn_mult: config.mn_mult,
-            add_noise: config.add_noise,
-            users_pay_more: config.users_pay_more,
-            simple_blocks: config.simple_blocks,
-            large_sim_mode: config.large_sim_mode,
-            exact_median: config.exact_median,
-            max_blocksize: config.max_blocksize,
-            max_blocksize_growth_rate: config.max_blocksize_growth_rate,
-            use_long_term_median_cap: config.use_long_term_median_cap,
-            sanity_start_weight: config.sanity_start_weight,
-            sanity_start_block: config.sanity_start_block,
-            // NEW: Monero scaling 2025 parameters
-            use_new_scaling_rules: config.use_new_scaling_rules,
-            z_m_old: config.z_m_old,
-            ms_cap_multiplier: config.ms_cap_multiplier,
-            min_fee_percentage: config.min_fee_percentage,
-            wallet_grace_period: config.wallet_grace_period,
-            fee_level_count: config.fee_level_count,
-            fee_rounding_digits: config.fee_rounding_digits,
+            n: c.n,
+            rules: c.rules,
+            z_m: c.z_m,
+            lt_growth_num: c.lt_growth_num,
+            lt_growth_den: c.lt_growth_den,
+            surge_factor: c.surge_factor,
+            long_window: c.long_window,
+            short_window: c.short_window,
+            initial_weight: c.initial_weight,
+            sanity_cap: c.sanity_cap,
+            sanity_start_weight: c.sanity_start_weight,
+            sanity_start_block: c.sanity_start_block,
+            t_r: c.t_r,
+            min_fee_fraction: c.min_fee_fraction,
+            wallet_grace_blocks: c.wallet_grace_blocks,
+            fee_rounding_digits: c.fee_rounding_digits,
+            fee_level: c.fee_level,
+            r_base: c.r_base,
+            t_sim: c.t_sim,
+            run_type: c.run_type,
+            ramp_multiplier: c.ramp_multiplier,
+            add_noise: c.add_noise,
+            users_pay_more: c.users_pay_more,
+            rational_miners: c.rational_miners,
         }
     }
 }
 
-/// Simulation results structure (WASM wrapper)
+/// Summary of the last run (WASM wrapper). Per-block series are read with the get_* functions.
 #[wasm_bindgen]
 pub struct SimulationResults {
     pub max_mb: i64,
     pub max_penalty: f64,
     pub max_mempool: i64,
     pub cumulative_fees: f64,
+    pub rejected_txs: i64,
+    pub min_fee_per_byte: f64,
     pub data_points: u32,
 }
 
-/// Get pointer to result arrays for JS to read
-#[wasm_bindgen]
-pub fn get_m_b_ptr() -> *const i64 {
-    unsafe { RESULT_M_B.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_m_l_ptr() -> *const i64 {
-    unsafe { RESULT_M_L.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_m_s_ptr() -> *const i64 {
-    unsafe { RESULT_M_S.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_m_n_ptr() -> *const i64 {
-    unsafe { RESULT_M_N.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_input_vol_ptr() -> *const i64 {
-    unsafe { RESULT_INPUT_VOL.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_block_fee_ptr() -> *const f64 {
-    unsafe { RESULT_BLOCK_FEE.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_penalty_ptr() -> *const f64 {
-    unsafe { RESULT_PENALTY.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_mempool_ptr() -> *const i64 {
-    unsafe { RESULT_MEMPOOL.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_indices_ptr() -> *const u32 {
-    unsafe { RESULT_INDICES.as_ptr() }
-}
-
-#[wasm_bindgen]
-pub fn get_result_len() -> u32 {
-    unsafe { RESULT_M_B.len() as u32 }
-}
-
-#[wasm_bindgen]
-pub fn get_max_mb() -> i64 {
-    unsafe { STATS_MAX_MB }
-}
-
-#[wasm_bindgen]
-pub fn get_max_penalty() -> f64 {
-    unsafe { STATS_MAX_PENALTY }
-}
-
-#[wasm_bindgen]
-pub fn get_max_mempool() -> i64 {
-    unsafe { STATS_MAX_MEMPOOL }
-}
-
-#[wasm_bindgen]
-pub fn get_cumulative_fees() -> f64 {
-    unsafe { STATS_CUMULATIVE_FEES }
-}
-
-/// Main simulation function - NOTE: This returns immediately but data must be read from memory
 #[wasm_bindgen]
 pub fn run_simulation(config: SimulationConfig) -> SimulationResults {
-    // Run the optimized core simulation
-    let core_config: CoreConfig = config.into();
-    let core_results = run_simulation_core(core_config);
-    
-    // Store results in global statics
-    unsafe {
-        STATS_MAX_MB = core_results.max_mb;
-        STATS_MAX_PENALTY = core_results.max_penalty;
-        STATS_MAX_MEMPOOL = core_results.max_mempool;
-        STATS_CUMULATIVE_FEES = core_results.cumulative_fees;
-        
-        // Store detailed data for charting
-        RESULT_M_B = core_results.M_B;
-        RESULT_M_L = core_results.M_L;
-        RESULT_M_S = core_results.M_S;
-        RESULT_M_N = core_results.M_N;
-        RESULT_INPUT_VOL = core_results.input_volume;
-        RESULT_BLOCK_FEE = core_results.block_fee;
-        RESULT_PENALTY = core_results.penalty;
-        RESULT_MEMPOOL = core_results.mempool_size;
-        RESULT_INDICES = core_results.indices;
-    }
-    
-    // NOTE: For now, we're not storing per-block data to avoid the performance overhead
-    // The web UI will need to be updated to only show summary stats
-    // Or we need to run the simulation again to collect detailed data
-    
-    SimulationResults {
-        max_mb: core_results.max_mb,
-        max_penalty: core_results.max_penalty,
-        max_mempool: core_results.max_mempool,
-        cumulative_fees: core_results.cumulative_fees,
-        data_points: core_results.data_points,
-    }
+    let r = run_simulation_core(config.into());
+    let summary = SimulationResults {
+        max_mb: r.max_mb,
+        max_penalty: r.max_penalty,
+        max_mempool: r.max_mempool,
+        cumulative_fees: r.cumulative_fees,
+        rejected_txs: r.rejected_txs,
+        min_fee_per_byte: r.min_fee_per_byte,
+        data_points: r.data_points,
+    };
+    LAST.with(|l| *l.borrow_mut() = Some(r));
+    summary
 }
+
+fn with_last<T: Default>(f: impl FnOnce(&CoreResults) -> T) -> T {
+    LAST.with(|l| l.borrow().as_ref().map(f).unwrap_or_default())
+}
+
+// Per-block series of the last run, copied out as typed arrays.
+#[wasm_bindgen] pub fn get_m_b() -> Vec<i64> { with_last(|r| r.M_B.clone()) }
+#[wasm_bindgen] pub fn get_m_l() -> Vec<i64> { with_last(|r| r.M_L.clone()) }
+#[wasm_bindgen] pub fn get_m_s() -> Vec<i64> { with_last(|r| r.M_S.clone()) }
+#[wasm_bindgen] pub fn get_m_n() -> Vec<i64> { with_last(|r| r.M_N.clone()) }
+#[wasm_bindgen] pub fn get_input_volume() -> Vec<i64> { with_last(|r| r.input_volume.clone()) }
+#[wasm_bindgen] pub fn get_block_fee() -> Vec<f64> { with_last(|r| r.block_fee.clone()) }
+#[wasm_bindgen] pub fn get_penalty() -> Vec<f64> { with_last(|r| r.penalty.clone()) }
+#[wasm_bindgen] pub fn get_mempool() -> Vec<i64> { with_last(|r| r.mempool_size.clone()) }
+#[wasm_bindgen] pub fn get_fee_low() -> Vec<f64> { with_last(|r| r.fee_low.clone()) }
+#[wasm_bindgen] pub fn get_fee_levels() -> Vec<f64> { with_last(|r| r.fee_levels.clone()) }
 
 /// Initialize the WASM module
 #[wasm_bindgen(start)]

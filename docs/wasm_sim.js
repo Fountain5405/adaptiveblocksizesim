@@ -6,12 +6,38 @@ function _assertClass(instance, klass) {
     }
 }
 
+function getArrayF64FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
+function getArrayI64FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getBigInt64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
+let cachedBigInt64ArrayMemory0 = null;
+function getBigInt64ArrayMemory0() {
+    if (cachedBigInt64ArrayMemory0 === null || cachedBigInt64ArrayMemory0.byteLength === 0) {
+        cachedBigInt64ArrayMemory0 = new BigInt64Array(wasm.memory.buffer);
+    }
+    return cachedBigInt64ArrayMemory0;
+}
+
 let cachedDataViewMemory0 = null;
 function getDataViewMemory0() {
     if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
         cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
     }
     return cachedDataViewMemory0;
+}
+
+let cachedFloat64ArrayMemory0 = null;
+function getFloat64ArrayMemory0() {
+    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
+        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+    }
+    return cachedFloat64ArrayMemory0;
 }
 
 function getStringFromWasm0(ptr, len) {
@@ -102,7 +128,9 @@ const SimulationResultsFinalization = (typeof FinalizationRegistry === 'undefine
     : new FinalizationRegistry(ptr => wasm.__wbg_simulationresults_free(ptr >>> 0, 1));
 
 /**
- * Simulation configuration structure (WASM wrapper)
+ * Simulation configuration (WASM wrapper).
+ * Create one from a rule preset, then set any fields to change from the preset:
+ *   const c = new SimulationConfig(1); c.n = 300000; c.t_sim = 9093;
  */
 export class SimulationConfig {
     __destroy_into_raw() {
@@ -129,17 +157,17 @@ export class SimulationConfig {
         wasm.__wbg_set_simulationconfig_n(this.__wbg_ptr, arg0);
     }
     /**
-     * @returns {bigint}
+     * @returns {number}
      */
-    get steady_state() {
-        const ret = wasm.__wbg_get_simulationconfig_steady_state(this.__wbg_ptr);
-        return ret;
+    get rules() {
+        const ret = wasm.__wbg_get_simulationconfig_rules(this.__wbg_ptr);
+        return ret >>> 0;
     }
     /**
-     * @param {bigint} arg0
+     * @param {number} arg0
      */
-    set steady_state(arg0) {
-        wasm.__wbg_set_simulationconfig_steady_state(this.__wbg_ptr, arg0);
+    set rules(arg0) {
+        wasm.__wbg_set_simulationconfig_rules(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {bigint}
@@ -157,6 +185,123 @@ export class SimulationConfig {
     /**
      * @returns {bigint}
      */
+    get lt_growth_num() {
+        const ret = wasm.__wbg_get_simulationconfig_lt_growth_num(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set lt_growth_num(arg0) {
+        wasm.__wbg_set_simulationconfig_lt_growth_num(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
+    get lt_growth_den() {
+        const ret = wasm.__wbg_get_simulationconfig_lt_growth_den(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set lt_growth_den(arg0) {
+        wasm.__wbg_set_simulationconfig_lt_growth_den(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
+    get surge_factor() {
+        const ret = wasm.__wbg_get_simulationconfig_surge_factor(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set surge_factor(arg0) {
+        wasm.__wbg_set_simulationconfig_surge_factor(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get long_window() {
+        const ret = wasm.__wbg_get_simulationconfig_long_window(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set long_window(arg0) {
+        wasm.__wbg_set_simulationconfig_long_window(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get short_window() {
+        const ret = wasm.__wbg_get_simulationconfig_short_window(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set short_window(arg0) {
+        wasm.__wbg_set_simulationconfig_short_window(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
+    get initial_weight() {
+        const ret = wasm.__wbg_get_simulationconfig_initial_weight(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set initial_weight(arg0) {
+        wasm.__wbg_set_simulationconfig_initial_weight(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {boolean}
+     */
+    get sanity_cap() {
+        const ret = wasm.__wbg_get_simulationconfig_sanity_cap(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * @param {boolean} arg0
+     */
+    set sanity_cap(arg0) {
+        wasm.__wbg_set_simulationconfig_sanity_cap(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
+    get sanity_start_weight() {
+        const ret = wasm.__wbg_get_simulationconfig_sanity_start_weight(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set sanity_start_weight(arg0) {
+        wasm.__wbg_set_simulationconfig_sanity_start_weight(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get sanity_start_block() {
+        const ret = wasm.__wbg_get_simulationconfig_sanity_start_block(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set sanity_start_block(arg0) {
+        wasm.__wbg_set_simulationconfig_sanity_start_block(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
     get t_r() {
         const ret = wasm.__wbg_get_simulationconfig_t_r(this.__wbg_ptr);
         return ret;
@@ -170,6 +315,58 @@ export class SimulationConfig {
     /**
      * @returns {number}
      */
+    get min_fee_fraction() {
+        const ret = wasm.__wbg_get_simulationconfig_min_fee_fraction(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set min_fee_fraction(arg0) {
+        wasm.__wbg_set_simulationconfig_min_fee_fraction(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get wallet_grace_blocks() {
+        const ret = wasm.__wbg_get_simulationconfig_wallet_grace_blocks(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set wallet_grace_blocks(arg0) {
+        wasm.__wbg_set_simulationconfig_wallet_grace_blocks(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get fee_rounding_digits() {
+        const ret = wasm.__wbg_get_simulationconfig_fee_rounding_digits(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set fee_rounding_digits(arg0) {
+        wasm.__wbg_set_simulationconfig_fee_rounding_digits(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get fee_level() {
+        const ret = wasm.__wbg_get_simulationconfig_fee_level(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set fee_level(arg0) {
+        wasm.__wbg_set_simulationconfig_fee_level(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
     get r_base() {
         const ret = wasm.__wbg_get_simulationconfig_r_base(this.__wbg_ptr);
         return ret;
@@ -179,32 +376,6 @@ export class SimulationConfig {
      */
     set r_base(arg0) {
         wasm.__wbg_set_simulationconfig_r_base(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get mid_100k() {
-        const ret = wasm.__wbg_get_simulationconfig_mid_100k(this.__wbg_ptr);
-        return ret >>> 0;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set mid_100k(arg0) {
-        wasm.__wbg_set_simulationconfig_mid_100k(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get mid_100() {
-        const ret = wasm.__wbg_get_simulationconfig_mid_100(this.__wbg_ptr);
-        return ret >>> 0;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set mid_100(arg0) {
-        wasm.__wbg_set_simulationconfig_mid_100(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {bigint}
@@ -246,32 +417,6 @@ export class SimulationConfig {
         wasm.__wbg_set_simulationconfig_ramp_multiplier(this.__wbg_ptr, arg0);
     }
     /**
-     * @returns {number}
-     */
-    get ml_mult() {
-        const ret = wasm.__wbg_get_simulationconfig_ml_mult(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set ml_mult(arg0) {
-        wasm.__wbg_set_simulationconfig_ml_mult(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get mn_mult() {
-        const ret = wasm.__wbg_get_simulationconfig_mn_mult(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set mn_mult(arg0) {
-        wasm.__wbg_set_simulationconfig_mn_mult(this.__wbg_ptr, arg0);
-    }
-    /**
      * @returns {boolean}
      */
     get add_noise() {
@@ -300,231 +445,22 @@ export class SimulationConfig {
     /**
      * @returns {boolean}
      */
-    get simple_blocks() {
-        const ret = wasm.__wbg_get_simulationconfig_simple_blocks(this.__wbg_ptr);
+    get rational_miners() {
+        const ret = wasm.__wbg_get_simulationconfig_rational_miners(this.__wbg_ptr);
         return ret !== 0;
     }
     /**
      * @param {boolean} arg0
      */
-    set simple_blocks(arg0) {
-        wasm.__wbg_set_simulationconfig_simple_blocks(this.__wbg_ptr, arg0);
+    set rational_miners(arg0) {
+        wasm.__wbg_set_simulationconfig_rational_miners(this.__wbg_ptr, arg0);
     }
     /**
-     * @returns {boolean}
+     * rules: 0 = v16 (mainnet, 2021 scaling), 1 = v17 (FCMP++, 2026 scaling), 2 = custom
+     * @param {number} rules
      */
-    get large_sim_mode() {
-        const ret = wasm.__wbg_get_simulationconfig_large_sim_mode(this.__wbg_ptr);
-        return ret !== 0;
-    }
-    /**
-     * @param {boolean} arg0
-     */
-    set large_sim_mode(arg0) {
-        wasm.__wbg_set_simulationconfig_large_sim_mode(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {boolean}
-     */
-    get exact_median() {
-        const ret = wasm.__wbg_get_simulationconfig_exact_median(this.__wbg_ptr);
-        return ret !== 0;
-    }
-    /**
-     * @param {boolean} arg0
-     */
-    set exact_median(arg0) {
-        wasm.__wbg_set_simulationconfig_exact_median(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {bigint}
-     */
-    get max_blocksize() {
-        const ret = wasm.__wbg_get_simulationconfig_max_blocksize(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {bigint} arg0
-     */
-    set max_blocksize(arg0) {
-        wasm.__wbg_set_simulationconfig_max_blocksize(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get max_blocksize_growth_rate() {
-        const ret = wasm.__wbg_get_simulationconfig_max_blocksize_growth_rate(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set max_blocksize_growth_rate(arg0) {
-        wasm.__wbg_set_simulationconfig_max_blocksize_growth_rate(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {boolean}
-     */
-    get use_long_term_median_cap() {
-        const ret = wasm.__wbg_get_simulationconfig_use_long_term_median_cap(this.__wbg_ptr);
-        return ret !== 0;
-    }
-    /**
-     * @param {boolean} arg0
-     */
-    set use_long_term_median_cap(arg0) {
-        wasm.__wbg_set_simulationconfig_use_long_term_median_cap(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {bigint}
-     */
-    get sanity_start_weight() {
-        const ret = wasm.__wbg_get_simulationconfig_sanity_start_weight(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {bigint} arg0
-     */
-    set sanity_start_weight(arg0) {
-        wasm.__wbg_set_simulationconfig_sanity_start_weight(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get sanity_start_block() {
-        const ret = wasm.__wbg_get_simulationconfig_sanity_start_block(this.__wbg_ptr);
-        return ret >>> 0;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set sanity_start_block(arg0) {
-        wasm.__wbg_set_simulationconfig_sanity_start_block(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {boolean}
-     */
-    get use_new_scaling_rules() {
-        const ret = wasm.__wbg_get_simulationconfig_use_new_scaling_rules(this.__wbg_ptr);
-        return ret !== 0;
-    }
-    /**
-     * @param {boolean} arg0
-     */
-    set use_new_scaling_rules(arg0) {
-        wasm.__wbg_set_simulationconfig_use_new_scaling_rules(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {bigint}
-     */
-    get z_m_old() {
-        const ret = wasm.__wbg_get_simulationconfig_z_m_old(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {bigint} arg0
-     */
-    set z_m_old(arg0) {
-        wasm.__wbg_set_simulationconfig_z_m_old(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get ms_cap_multiplier() {
-        const ret = wasm.__wbg_get_simulationconfig_ms_cap_multiplier(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set ms_cap_multiplier(arg0) {
-        wasm.__wbg_set_simulationconfig_ms_cap_multiplier(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get min_fee_percentage() {
-        const ret = wasm.__wbg_get_simulationconfig_min_fee_percentage(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set min_fee_percentage(arg0) {
-        wasm.__wbg_set_simulationconfig_min_fee_percentage(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get wallet_grace_period() {
-        const ret = wasm.__wbg_get_simulationconfig_wallet_grace_period(this.__wbg_ptr);
-        return ret >>> 0;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set wallet_grace_period(arg0) {
-        wasm.__wbg_set_simulationconfig_wallet_grace_period(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get fee_level_count() {
-        const ret = wasm.__wbg_get_simulationconfig_fee_level_count(this.__wbg_ptr);
-        return ret >>> 0;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set fee_level_count(arg0) {
-        wasm.__wbg_set_simulationconfig_fee_level_count(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get fee_rounding_digits() {
-        const ret = wasm.__wbg_get_simulationconfig_fee_rounding_digits(this.__wbg_ptr);
-        return ret >>> 0;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set fee_rounding_digits(arg0) {
-        wasm.__wbg_set_simulationconfig_fee_rounding_digits(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @param {number} n
-     * @param {bigint} steady_state
-     * @param {bigint} z_m
-     * @param {bigint} t_r
-     * @param {number} r_base
-     * @param {number} mid_100k
-     * @param {number} mid_100
-     * @param {bigint} t_sim
-     * @param {number} run_type
-     * @param {number} ramp_multiplier
-     * @param {number} ml_mult
-     * @param {number} mn_mult
-     * @param {boolean} add_noise
-     * @param {boolean} users_pay_more
-     * @param {boolean} simple_blocks
-     * @param {boolean} large_sim_mode
-     * @param {boolean} exact_median
-     * @param {bigint} max_blocksize
-     * @param {number} max_blocksize_growth_rate
-     * @param {boolean} use_long_term_median_cap
-     * @param {bigint} sanity_start_weight
-     * @param {number} sanity_start_block
-     * @param {boolean} use_new_scaling_rules
-     * @param {bigint} z_m_old
-     * @param {number} ms_cap_multiplier
-     * @param {number} min_fee_percentage
-     * @param {number} wallet_grace_period
-     * @param {number} fee_level_count
-     * @param {number} fee_rounding_digits
-     */
-    constructor(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block, use_new_scaling_rules, z_m_old, ms_cap_multiplier, min_fee_percentage, wallet_grace_period, fee_level_count, fee_rounding_digits) {
-        const ret = wasm.simulationconfig_new(n, steady_state, z_m, t_r, r_base, mid_100k, mid_100, t_sim, run_type, ramp_multiplier, ml_mult, mn_mult, add_noise, users_pay_more, simple_blocks, large_sim_mode, exact_median, max_blocksize, max_blocksize_growth_rate, use_long_term_median_cap, sanity_start_weight, sanity_start_block, use_new_scaling_rules, z_m_old, ms_cap_multiplier, min_fee_percentage, wallet_grace_period, fee_level_count, fee_rounding_digits);
+    constructor(rules) {
+        const ret = wasm.simulationconfig_new(rules);
         this.__wbg_ptr = ret >>> 0;
         SimulationConfigFinalization.register(this, this.__wbg_ptr, this);
         return this;
@@ -533,7 +469,7 @@ export class SimulationConfig {
 if (Symbol.dispose) SimulationConfig.prototype[Symbol.dispose] = SimulationConfig.prototype.free;
 
 /**
- * Simulation results structure (WASM wrapper)
+ * Summary of the last run (WASM wrapper). Per-block series are read with the get_* functions.
  */
 export class SimulationResults {
     static __wrap(ptr) {
@@ -557,14 +493,14 @@ export class SimulationResults {
      * @returns {bigint}
      */
     get max_mb() {
-        const ret = wasm.__wbg_get_simulationconfig_steady_state(this.__wbg_ptr);
+        const ret = wasm.__wbg_get_simulationconfig_z_m(this.__wbg_ptr);
         return ret;
     }
     /**
      * @param {bigint} arg0
      */
     set max_mb(arg0) {
-        wasm.__wbg_set_simulationconfig_steady_state(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_simulationconfig_z_m(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {number}
@@ -583,27 +519,53 @@ export class SimulationResults {
      * @returns {bigint}
      */
     get max_mempool() {
-        const ret = wasm.__wbg_get_simulationconfig_t_r(this.__wbg_ptr);
+        const ret = wasm.__wbg_get_simulationconfig_lt_growth_den(this.__wbg_ptr);
         return ret;
     }
     /**
      * @param {bigint} arg0
      */
     set max_mempool(arg0) {
-        wasm.__wbg_set_simulationconfig_t_r(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_simulationconfig_lt_growth_den(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {number}
      */
     get cumulative_fees() {
-        const ret = wasm.__wbg_get_simulationconfig_r_base(this.__wbg_ptr);
+        const ret = wasm.__wbg_get_simulationresults_cumulative_fees(this.__wbg_ptr);
         return ret;
     }
     /**
      * @param {number} arg0
      */
     set cumulative_fees(arg0) {
-        wasm.__wbg_set_simulationconfig_r_base(this.__wbg_ptr, arg0);
+        wasm.__wbg_set_simulationresults_cumulative_fees(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {bigint}
+     */
+    get rejected_txs() {
+        const ret = wasm.__wbg_get_simulationconfig_initial_weight(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {bigint} arg0
+     */
+    set rejected_txs(arg0) {
+        wasm.__wbg_set_simulationconfig_initial_weight(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @returns {number}
+     */
+    get min_fee_per_byte() {
+        const ret = wasm.__wbg_get_simulationresults_min_fee_per_byte(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set min_fee_per_byte(arg0) {
+        wasm.__wbg_set_simulationresults_min_fee_per_byte(this.__wbg_ptr, arg0);
     }
     /**
      * @returns {number}
@@ -622,116 +584,103 @@ export class SimulationResults {
 if (Symbol.dispose) SimulationResults.prototype[Symbol.dispose] = SimulationResults.prototype.free;
 
 /**
- * @returns {number}
+ * @returns {Float64Array}
  */
-export function get_block_fee_ptr() {
-    const ret = wasm.get_block_fee_ptr();
-    return ret >>> 0;
+export function get_block_fee() {
+    const ret = wasm.get_block_fee();
+    var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {number}
+ * @returns {Float64Array}
  */
-export function get_cumulative_fees() {
-    const ret = wasm.get_cumulative_fees();
-    return ret;
+export function get_fee_levels() {
+    const ret = wasm.get_fee_levels();
+    var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {number}
+ * @returns {Float64Array}
  */
-export function get_indices_ptr() {
-    const ret = wasm.get_indices_ptr();
-    return ret >>> 0;
+export function get_fee_low() {
+    const ret = wasm.get_fee_low();
+    var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {number}
+ * @returns {BigInt64Array}
  */
-export function get_input_vol_ptr() {
-    const ret = wasm.get_input_vol_ptr();
-    return ret >>> 0;
+export function get_input_volume() {
+    const ret = wasm.get_input_volume();
+    var v1 = getArrayI64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * Get pointer to result arrays for JS to read
- * @returns {number}
+ * @returns {BigInt64Array}
  */
-export function get_m_b_ptr() {
-    const ret = wasm.get_m_b_ptr();
-    return ret >>> 0;
+export function get_m_b() {
+    const ret = wasm.get_m_b();
+    var v1 = getArrayI64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {number}
+ * @returns {BigInt64Array}
  */
-export function get_m_l_ptr() {
-    const ret = wasm.get_m_l_ptr();
-    return ret >>> 0;
+export function get_m_l() {
+    const ret = wasm.get_m_l();
+    var v1 = getArrayI64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {number}
+ * @returns {BigInt64Array}
  */
-export function get_m_n_ptr() {
-    const ret = wasm.get_m_n_ptr();
-    return ret >>> 0;
+export function get_m_n() {
+    const ret = wasm.get_m_n();
+    var v1 = getArrayI64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {number}
+ * @returns {BigInt64Array}
  */
-export function get_m_s_ptr() {
-    const ret = wasm.get_m_s_ptr();
-    return ret >>> 0;
+export function get_m_s() {
+    const ret = wasm.get_m_s();
+    var v1 = getArrayI64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {bigint}
+ * @returns {BigInt64Array}
  */
-export function get_max_mb() {
-    const ret = wasm.get_max_mb();
-    return ret;
+export function get_mempool() {
+    const ret = wasm.get_mempool();
+    var v1 = getArrayI64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
- * @returns {bigint}
+ * @returns {Float64Array}
  */
-export function get_max_mempool() {
-    const ret = wasm.get_max_mempool();
-    return ret;
-}
-
-/**
- * @returns {number}
- */
-export function get_max_penalty() {
-    const ret = wasm.get_max_penalty();
-    return ret;
-}
-
-/**
- * @returns {number}
- */
-export function get_mempool_ptr() {
-    const ret = wasm.get_mempool_ptr();
-    return ret >>> 0;
-}
-
-/**
- * @returns {number}
- */
-export function get_penalty_ptr() {
-    const ret = wasm.get_penalty_ptr();
-    return ret >>> 0;
-}
-
-/**
- * @returns {number}
- */
-export function get_result_len() {
-    const ret = wasm.get_result_len();
-    return ret >>> 0;
+export function get_penalty() {
+    const ret = wasm.get_penalty();
+    var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v1;
 }
 
 /**
@@ -742,7 +691,6 @@ export function main() {
 }
 
 /**
- * Main simulation function - NOTE: This returns immediately but data must be read from memory
  * @param {SimulationConfig} config
  * @returns {SimulationResults}
  */
@@ -846,7 +794,9 @@ function __wbg_get_imports() {
 function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     __wbg_init.__wbindgen_wasm_module = module;
+    cachedBigInt64ArrayMemory0 = null;
     cachedDataViewMemory0 = null;
+    cachedFloat64ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
 
 

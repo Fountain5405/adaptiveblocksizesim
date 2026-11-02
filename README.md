@@ -8,11 +8,22 @@ This project simulates blockchain growth and fee dynamics under various traffic 
 
 **⚠️ WARNING**: AI GENERATED. Original human code found here: https://github.com/spackle-xmr/Dynamic_Block_Demo/blob/main/Dynamic_Blocksize_econ_draft.py
 
+## Rules
+
+The simulator implements Monero's block weight and fee rules exactly as the reference code does:
+
+- **v16** — mainnet today ("2021 scaling")
+- **v17** — the FCMP++ hard fork ("2026 scaling", ArticMine's MoneroScaling2026-03), as running on the stressnet
+- **Custom** — the 2026 framework with your own parameters
+
+See [RULES.md](RULES.md) for every formula, the code it comes from, and what isn't modelled.
+
 ## Features
 
 - **Dual Engine Support**: WebAssembly (Rust) for high performance + JavaScript for compatibility
 - **Real-time Visualization**: Interactive charts showing block size, mempool growth, fees, and penalties
 - **Performance Comparison**: Side-by-side benchmarking of WASM vs JavaScript engines
+- **Exact medians**: rolling 100,000-block and 100-block medians recomputed every block in O(log n)
 - **Configurable Parameters**: Extensive tuning options for network constants and algorithm parameters
 - **Multiple Traffic Patterns**: Linear, parabolic, exponential, and sine wave transaction influx patterns
 

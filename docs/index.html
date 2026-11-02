@@ -85,13 +85,13 @@
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" name="engine" id="engineJs" value="js">
                     <label class="form-check-label" for="engineJs">
-                        <strong>JavaScript</strong> - Original implementation
+                        <strong>JavaScript</strong> - Port of the Rust core (engine.js)
                     </label>
                 </div>
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="checkbox" id="compareMode">
                     <label class="form-check-label" for="compareMode">
-                        <strong>Compare Performance</strong> - Run both engines
+                        <strong>Compare Engines</strong> - Run both, compare results and speed
                     </label>
                 </div>
             </div>
@@ -106,76 +106,105 @@
             </button>
         </div>
         <div class="card-body">
-            <form id="simForm">
+            <form id="simForm" onsubmit="return false">
                 <div class="row g-3">
-                    
+
                     <div class="col-md-3 border-end">
-                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Network Constants</h6>
-                        
+                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Rules &amp; Consensus</h6>
+
                         <div class="mb-2">
-                            <label class="form-label">Steady State (Bytes)</label>
-                            <input type="number" id="steady_state" class="form-control form-control-sm" value="1000000">
-                            <small class="form-text">Network blocksize at start (M_L, M_S initial)</small>
-                        </div>
-
-                        <div id="field_z_m" class="mb-2">
-                            <label class="form-label">Z_M (Current Penalty Free Zone)</label>
-                            <input type="number" id="z_m" class="form-control form-control-sm" value="1000000">
-                            <small class="form-text">Current penalty free block weight. <b>New: 1MB (was 300kB)</b></small>
-                        </div>
-
-                        <div id="field_t_r" class="mb-2">
-                            <label class="form-label">T_R (Ref Transaction)</label>
-                            <input type="number" id="t_r" class="form-control form-control-sm" value="10000">
-                            <small class="form-text">Reference tx weight for fee calculation. <b>New: 10kB (was 3kB)</b></small>
+                            <label class="form-label">Scaling Rules</label>
+                            <select id="rules" class="form-select form-select-sm">
+                                <option value="0">Mainnet today &mdash; v16 (2021 scaling)</option>
+                                <option value="1" selected>FCMP++ hard fork &mdash; v17 (2026 scaling, as on the stressnet)</option>
+                                <option value="2">Custom</option>
+                            </select>
+                            <small class="form-text">The consensus and fee fields below are fixed for the two presets; choose Custom to edit them.</small>
                         </div>
 
                         <div class="mb-2">
-                            <label class="form-label">R_Base (Factor)</label>
-                            <input type="number" id="r_base" class="form-control form-control-sm" value="0.6" step="0.1">
-                            <small class="form-text">Base multiplier for penalty calculation.</small>
+                            <label class="form-label">Z_M (penalty-free zone, bytes)</label>
+                            <input type="number" id="z_m" class="form-control form-control-sm" value="625000">
+                            <small class="form-text">Minimum penalty-free block weight. Also the floor of M_L.</small>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Long-term growth factor</label>
+                            <input type="number" id="lt_growth" class="form-control form-control-sm" value="1.2" step="0.05">
+                            <small class="form-text">Each block's long-term weight is clamped to [M_L/x, M_L&middot;x]. Custom values are sent as round(x&middot;1000)/1000.</small>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Surge factor</label>
+                            <input type="number" id="surge_factor" class="form-control form-control-sm" value="8">
+                            <small class="form-text">M_N = min(max(M_S, M_L), factor&middot;M_L).</small>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Long window (blocks)</label>
+                            <input type="number" id="long_window" class="form-control form-control-sm" value="100000">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Short window (blocks)</label>
+                            <input type="number" id="short_window" class="form-control form-control-sm" value="100">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Initial weight (bytes)</label>
+                            <input type="number" id="initial_weight" class="form-control form-control-sm" value="625000">
+                            <small class="form-text">Fills both median windows at block 0.</small>
                         </div>
                     </div>
 
                     <div class="col-md-3 border-end">
-                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Median Algorithm Tuning</h6>
+                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Fees &amp; Transactions</h6>
 
                         <div class="mb-2">
-                            <label class="form-label">mid_100k (Long Term Index)</label>
-                            <input type="number" id="mid_100k" class="form-control form-control-sm" value="50000">
-                            <small class="form-text">Middle index for Long Term window.</small>
+                            <label class="form-label">T_R (reference tx weight)</label>
+                            <input type="number" id="t_r" class="form-control form-control-sm" value="12500">
+                            <small class="form-text">Reference transaction weight for the fee formulas.</small>
                         </div>
-
                         <div class="mb-2">
-                            <label class="form-label">mid_100 (Short Term Index)</label>
-                            <input type="number" id="mid_100" class="form-control form-control-sm" value="50">
-                            <small class="form-text">Middle index for Short Term window.</small>
+                            <label class="form-label">Min relay fee fraction</label>
+                            <input type="number" id="min_fee_fraction" class="form-control form-control-sm" value="1" step="0.05">
+                            <small class="form-text">Node relay minimum as a fraction of the base fee. Nodes accept 98% of it.</small>
                         </div>
-
                         <div class="mb-2">
-                            <label class="form-label">T_sim (Discretization)</label>
-                            <input type="number" id="t_sim" class="form-control form-control-sm" value="800">
-                            <small class="form-text">Tx size step (Bytes). Granularity of sim.</small>
+                            <label class="form-label">Wallet grace period (blocks)</label>
+                            <input type="number" id="wallet_grace_blocks" class="form-control form-control-sm" value="1000">
+                            <small class="form-text">Empty blocks wallets add to the medians when estimating fees.</small>
                         </div>
-                        
-                        <div id="field_ml_mult" class="mb-2">
-                            <label class="form-label">M_L Growth Factor</label>
-                            <input type="number" id="ml_mult" class="form-control form-control-sm" value="2" step="0.1">
-                            <small class="form-text">M_L_weight = max(min(M_B, <b>X</b>·M_L), Z_M, M_L/<b>X</b>). New=2, Old=1.7</small>
+                        <div class="mb-2">
+                            <label class="form-label">Fee rounding digits</label>
+                            <input type="number" id="fee_rounding_digits" class="form-control form-control-sm" value="2">
+                            <small class="form-text">Wallet fees are rounded up to this many significant digits.</small>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">R_Base (XMR)</label>
+                            <input type="number" id="r_base" class="form-control form-control-sm" value="0.6" step="0.1">
+                            <small class="form-text">Base block reward (tail emission).</small>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">T_sim (simulated tx weight, bytes)</label>
+                            <input type="number" id="t_sim" class="form-control form-control-sm" value="9093">
+                            <small id="t_sim_hint" class="form-text"></small>
                         </div>
 
-                        <div id="field_mn_mult" class="mb-2">
-                            <label class="form-label">M_N Cap Factor</label>
-                            <input type="number" id="mn_mult" class="form-control form-control-sm" value="50" step="1">
-                            <small class="form-text"><b>NEW RULES:</b> M_N = M_S (no cap). This field kept for backwards compatibility.</small>
+                        <div class="card mt-3 border-secondary">
+                            <div class="card-header bg-light py-2">
+                                <h6 class="m-0 text-secondary" style="font-size: 0.8rem;">Sanity Cap (Custom only)</h6>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="sanity_cap">
+                                    <label class="form-check-label" for="sanity_cap" style="font-size: 0.85rem">Sanity cap from the December 2025 draft (not adopted in the final spec or the code)</label>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Sanity start weight (bytes)</label>
+                                    <input type="number" id="sanity_start_weight" class="form-control form-control-sm" value="10000000">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Sanity start block</label>
+                                    <input type="number" id="sanity_start_block" class="form-control form-control-sm" value="0">
+                                </div>
+                            </div>
                         </div>
-
-                        <div id="field_ms_cap_multiplier_main" class="mb-2" style="display: none;">
-                            <label class="form-label">M_S Cap Multiplier</label>
-                            <input type="number" id="ms_cap_multiplier_main" class="form-control form-control-sm" value="8" step="0.5">
-                            <small class="form-text">M_S cap: Old=50×, New=8× M_L</small>
-                        </div>
-                        
                     </div>
 
                     <div class="col-md-3 border-end">
@@ -206,108 +235,24 @@
                             <small class="form-text">End volume / start volume (RUN_TYPE 6)</small>
                         </div>
 
+                        <div class="mb-2">
+                            <label class="form-label">Wallet fee level</label>
+                            <select id="fee_level" class="form-select form-select-sm"></select>
+                            <small class="form-text">Auto pays the lowest level unless the pool is backed up or recent blocks are busy, then Normal.</small>
+                        </div>
+
                         <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="rational_miners" checked>
+                            <label class="form-check-label" for="rational_miners" style="font-size: 0.85rem">Rational miners (include a transaction only if its fee covers the penalty it adds)</label>
+                            <small class="form-text">Unchecked: miners fill blocks to the maximum.</small>
+                        </div>
+                        <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="add_noise">
-                            <label class="form-check-label" style="font-size: 0.85rem">ADD_NOISE</label>
+                            <label class="form-check-label" for="add_noise" style="font-size: 0.85rem">ADD_NOISE</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="users_pay_more">
-                            <label class="form-check-label" style="font-size: 0.85rem">USERS_PAY_MORE</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="large_sim_mode">
-                            <label class="form-check-label" style="font-size: 0.85rem">LARGE_SIMULATION_MODE</label>
-                        </div>
-                        
-                        <h6 class="text-uppercase text-muted fw-bold mt-3" style="font-size: 0.75rem;">Performance</h6>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="fast_median" checked>
-                            <label class="form-check-label" style="font-size: 0.85rem">Fast Median (circular buffer)</label>
-                            <small class="form-text">Uses optimized circular buffer. When unchecked: Standard array method (original Python). When checked without Exact: Fast approximate. When checked with Exact: Fast exact.</small>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="exact_median">
-                            <label class="form-check-label" style="font-size: 0.85rem">Exact Median (sort every update)</label>
-                            <small class="form-text">Only active when Fast Median is checked. Forces exact calculation by sorting on every update instead of periodic sorting.</small>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="simple_blocks" checked>
-                            <label class="form-check-label" style="font-size: 0.85rem">Simple Block Building</label>
-                            <small class="form-text">Uses simplified block construction algorithm. Significantly faster with minimal impact on simulation accuracy.</small>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="use_workers">
-                            <label class="form-check-label" style="font-size: 0.85rem">Use Web Worker (no UI freeze)</label>
-                            <small class="form-text">Runs simulation in background thread to prevent UI freezing during long calculations. Requires modern browser support.</small>
-                        </div>
-                        
-                        <div class="card mt-3 border-secondary">
-                            <div class="card-header bg-light py-2">
-                                <h6 class="m-0 text-secondary" style="font-size: 0.8rem;">Sanity Cap Settings</h6>
-                            </div>
-                            <div class="card-body p-2">
-                                <div class="mb-2">
-                                    <label class="form-label">Sanity Start Weight (Bytes)</label>
-                                    <input type="number" id="sanity_start_weight" class="form-control form-control-sm" value="10000000">
-                                    <small class="form-text">A_S: Starting weight for sanity cap (10MB default)</small>
-                                </div>
-                                
-                                <div class="mb-2">
-                                    <label class="form-label">Sanity Start Block</label>
-                                    <input type="number" id="sanity_start_block" class="form-control form-control-sm" value="0">
-                                    <small class="form-text">K_S: Block number when sanity cap starts (0 = from beginning)</small>
-                                </div>
-                                
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="enable_sanity_cap">
-                                    <label class="form-check-label" style="font-size: 0.85rem">Enable Sanity Cap (10MB, ~40% annual growth)</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 border-end">
-                        <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Monero Scaling 2025</h6>
-                        
-                        <div class="mb-2">
-                            <label class="form-label">Scaling Rules</label>
-                            <select id="scaling_rules" class="form-select form-select-sm">
-                                <option value="old">Old Rules (Pre-2025)</option>
-                                <option value="new" selected>New Rules (2025)</option>
-                                <option value="custom">Custom</option>
-                            </select>
-                            <small class="form-text">Choose between old and new scaling rules.</small>
-                        </div>
-
-                        <div id="field_z_m_old" class="mb-2" style="display: none;">
-                            <label class="form-label">Z_M (Old)</label>
-                            <input type="number" id="z_m_old" class="form-control form-control-sm" value="300000">
-                            <small class="form-text">Old penalty free zone for transitional calc.</small>
-                        </div>
-
-
-                        <div id="field_min_fee_percentage" class="mb-2" style="display: none;">
-                            <label class="form-label">Min Fee Percentage</label>
-                            <input type="number" id="min_fee_percentage" class="form-control form-control-sm" value="1.0" step="0.05">
-                            <small class="form-text">Old=0.95 (95%), New=1.0 (100%)</small>
-                        </div>
-
-                        <div id="field_wallet_grace_period" class="mb-2" style="display: none;">
-                            <label class="form-label">Wallet Grace Period</label>
-                            <input type="number" id="wallet_grace_period" class="form-control form-control-sm" value="1000" step="100">
-                            <small class="form-text">Blocks: Old=10, New=1000</small>
-                        </div>
-
-                        <div id="field_fee_level_count" class="mb-2" style="display: none;">
-                            <label class="form-label">Fee Level Count</label>
-                            <input type="number" id="fee_level_count" class="form-control form-control-sm" value="5" step="1">
-                            <small class="form-text">Fee levels: Old=4, New=5</small>
-                        </div>
-
-                        <div id="field_fee_rounding_digits" class="mb-2" style="display: none;">
-                            <label class="form-label">Fee Rounding Digits</label>
-                            <input type="number" id="fee_rounding_digits" class="form-control form-control-sm" value="2" step="1">
-                            <small class="form-text">Significant digits for fee rounding.</small>
+                            <label class="form-check-label" for="users_pay_more" style="font-size: 0.85rem">USERS_PAY_MORE</label>
                         </div>
                     </div>
 
@@ -322,13 +267,31 @@
                         </div>
                         <div id="performanceOutput" class="small" style="display: none;">
                             <hr>
-                            <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Performance Comparison</h6>
+                            <h6 class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Engine Comparison</h6>
                             <div id="performanceStats"></div>
                         </div>
                     </div>
 
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div class="card config-card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="m-0 text-primary">Rules</h5>
+        </div>
+        <div class="card-body small">
+            <p class="mb-2"><strong>v16</strong> (mainnet today) follows <code>monero-project/monero</code> master
+                (<code>src/cryptonote_core/blockchain.cpp</code>, <code>cryptonote_basic_impl.cpp</code>).
+                <strong>v17</strong> (the FCMP++ hard fork) follows the <code>seraphis-migration/monero</code> branch
+                <code>fcmp++-stage</code>, which implements ArticMine's
+                <a href="https://github.com/ArticMine/Monero-Documents/blob/master/MoneroScaling2026-03.pdf" target="_blank" rel="noopener">MoneroScaling2026-03</a>.
+                Block weights, medians and the long-term clamp are integers computed the way <code>blockchain.cpp</code> computes them.</p>
+            <ul class="mb-0">
+                <li>The 2026 spec rescales pre-fork block weights by 625/300 when the medians span the fork. The reference code does not do this, and neither does this simulator.</li>
+                <li>The long-term median can rise at most about 1.2x per 50,000 blocks (half the window) under v17, and about 1.7x under v16.</li>
+            </ul>
         </div>
     </div>
 
@@ -479,22 +442,34 @@
             </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card chart-card">
+                <div class="card-header py-1"><strong>Lowest Wallet Fee Level</strong> (XMR/byte)</div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartFeeLow"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Import the WebAssembly module -->
 <script type="module">
-    // Import WebAssembly module
-    import init, { SimulationConfig, run_simulation, test_wasm, get_result_len, get_indices_ptr, get_m_b_ptr, get_m_l_ptr, get_m_s_ptr, get_m_n_ptr, get_input_vol_ptr, get_block_fee_ptr, get_penalty_ptr, get_mempool_ptr } from './wasm_sim.js';
+    import init, { SimulationConfig, run_simulation, test_wasm, get_m_b, get_m_l, get_m_s, get_m_n, get_input_volume, get_block_fee, get_penalty, get_mempool, get_fee_low, get_fee_levels } from './wasm_sim.js';
+    import { runSimulationJS, presetConfig } from './engine.js';
 
     // Global variables
-    let wasmModule = null;
+    let wasmReady = false;
     let charts = {};
     let performanceResults = {};
 
     // ============================================
     // NUMBER FORMATTING UTILITIES
     // ============================================
-    
+
     // Format number to scientific notation with specified significant figures
     function toScientific(num, sigFigs = 4) {
         if (num === 0) return '0';
@@ -531,149 +506,83 @@
         }
         return num.toFixed(decimals);
     }
-    
+
     // Store last stats for re-display when toggle changes
     let lastStatsData = null;
     let lastStatsConfig = null;
     let lastCalcTime = 0;
-    
+
     function updateStatsDisplay() {
         if (lastStatsData && lastStatsConfig) {
             updateStatsOutput(lastStatsData, lastStatsConfig, lastCalcTime);
         }
     }
-    
+
     function updateStatsOutput(data, config, calcTime) {
         const sci = document.getElementById('scientific_notation')?.checked;
-        
+
         const fmtBytes = (b) => sci ? toScientific(b, 4) + ' B' : formatBytes(b);
         const fmtNum = (n, d=6) => sci ? toScientific(n, 4) : n.toFixed(d);
-        const fmtRatio = (n) => sci ? toScientific(n, 4) : n.toFixed(1);
-        
-        let statsHtml = `
+        const fmtFee = (n) => toScientific(n, 4);
+        const last = (a) => a[a.length - 1];
+        const names = feeLevelNames(config.rules);
+        const levelRows = data.fee_levels.map((f, k) =>
+            `&nbsp;&nbsp;${names[k] || k}: ${fmtFee(f)} XMR/byte, ${fmtFee(f * config.t_sim)} XMR per ${config.t_sim} B tx<br>`).join('');
+
+        document.getElementById('statsOutput').innerHTML = `
             <strong>Calculation Time:</strong> ${calcTime.toFixed(0)}ms<br>
-            <strong>Max Block Size:</strong> ${fmtBytes(data.stats.max_MB)}<br>
-            <strong>Max Mempool:</strong> ${fmtBytes(data.stats.max_Mempool)}<br>
-            <strong>Max Penalty:</strong> ${fmtNum(data.stats.max_Penalty)}<br>
-            <strong>Data Points:</strong> ${data.M_B.length}<br>
+            <strong>Max Block Size:</strong> ${fmtBytes(data.max_mb)}<br>
+            <strong>Max Mempool:</strong> ${fmtBytes(data.max_mempool)}<br>
+            <strong>Max Penalty:</strong> ${fmtNum(data.max_penalty)}<br>
+            <strong>Data Points:</strong> ${data.data_points}<br>
             <hr class="my-1">
-            <strong>Final M_L:</strong> ${fmtBytes(data.M_L[data.M_L.length-1])}<br>
-            <strong>Final M_S:</strong> ${fmtBytes(data.M_S[data.M_S.length-1])}<br>
-            <strong>Final M_N:</strong> ${fmtBytes(data.M_N[data.M_N.length-1])}<br>
-            <strong>M_S/M_L ratio:</strong> ${fmtRatio(data.M_S[data.M_S.length-1]/data.M_L[data.M_L.length-1])}x (cap: ${config.mnMult}x)<br>
+            <strong>Final M_L:</strong> ${fmtBytes(last(data.M_L))}<br>
+            <strong>Final M_S:</strong> ${fmtBytes(last(data.M_S))}<br>
+            <strong>Final M_N:</strong> ${fmtBytes(last(data.M_N))}<br>
             <hr class="my-1">
-            <strong>Total Fees Paid:</strong> ${fmtNum(data.stats.cumulative_fees)} XMR
+            <strong>Final wallet fee levels:</strong><br>${levelRows}
+            <strong>Node relay minimum:</strong> ${fmtFee(data.min_fee_per_byte)} XMR/byte<br>
+            <strong>Rejected transactions:</strong> ${data.rejected_txs}<br>
+            <hr class="my-1">
+            <strong>Total Fees Paid:</strong> ${fmtNum(data.cumulative_fees)} XMR
         `;
-        
-        document.getElementById('statsOutput').innerHTML = statsHtml;
+    }
+
+    function feeLevelNames(rules) {
+        return rules === 0 ? ['Low', 'Normal', 'Elevated', 'Priority'] : ['Low', 'Normal', 'Elevated', 'Priority', 'Max'];
+    }
+
+    // Exact equality for integer series, relative difference < 1e-12 for floats.
+    function compareEngines(a, b) {
+        const rel = (x, y) => x === y ? 0 : Math.abs(x - y) / Math.max(Math.abs(x), Math.abs(y));
+        const rows = [['M_B', true], ['M_L', true], ['M_N', true], ['block_fee', false]].map(([k, isInt]) => {
+            let maxDiff = 0;
+            for (let i = 0; i < a[k].length; i++) {
+                const d = isInt ? Math.abs(a[k][i] - b[k][i]) : rel(a[k][i], b[k][i]);
+                if (d > maxDiff) maxDiff = d;
+            }
+            const same = isInt ? maxDiff === 0 : maxDiff < 1e-12;
+            return `${k}: ${same ? 'identical' : 'DIFFERENT, max ' + (isInt ? 'difference ' + maxDiff : 'relative difference ' + maxDiff.toExponential(2))}`;
+        });
+        return rows.join('<br>');
     }
 
     function updatePerformanceOutput() {
         const perfDiv = document.getElementById('performanceStats');
         if (!performanceResults.wasm || !performanceResults.js) {
-            perfDiv.innerHTML = '<p class="text-muted">Run both engines to compare performance.</p>';
+            perfDiv.innerHTML = '<p class="text-muted">Run both engines to compare.</p>';
             return;
         }
-
-        const wasmSpeed = performanceResults.wasm.time;
-        const jsSpeed = performanceResults.js.time;
-        const speedup = (jsSpeed / wasmSpeed).toFixed(2);
-        
+        const wasmTime = performanceResults.wasm.time;
+        const jsTime = performanceResults.js.time;
         perfDiv.innerHTML = `
-            <div class="row">
-                <div class="col-6">
-                    <strong>WebAssembly (Rust):</strong><br>
-                    Time: ${wasmSpeed.toFixed(0)}ms<br>
-                    Memory: ${performanceResults.wasm.memory || 'N/A'} MB
-                </div>
-                <div class="col-6">
-                    <strong>JavaScript:</strong><br>
-                    Time: ${jsSpeed.toFixed(0)}ms<br>
-                    Memory: ${performanceResults.js.memory || 'N/A'} MB
-                </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <strong>Performance Improvement:</strong> ${speedup}x faster<br>
-                <small>WebAssembly is ${(100 - (100/speedup)).toFixed(1)}% faster</small>
-            </div>
+            <strong>WebAssembly (Rust):</strong> ${wasmTime.toFixed(0)}ms<br>
+            <strong>JavaScript:</strong> ${jsTime.toFixed(0)}ms (${(jsTime / wasmTime).toFixed(2)}x)
+            <hr class="my-1">
+            ${compareEngines(performanceResults.wasm.data, performanceResults.js.data)}
         `;
     }
 
-    // ============================================
-    // FAST MEDIAN TRACKER - O(1) amortized median
-    // Uses circular buffer + periodic sorting
-    // ============================================
-    class FastMedianTracker {
-        constructor(size, initialValue, exactMedian = false) {
-            this.size = size;
-            this.buffer = new Float64Array(size).fill(initialValue);
-            this.sortedBuffer = new Float64Array(size).fill(initialValue);
-            this.head = 0;  // Points to oldest element
-            this.exactMedian = exactMedian;
-            
-            // Sort interval depends on exact_median flag
-            if (exactMedian) {
-                this.sortInterval = 1;  // Sort every update (matches Python bisect behavior)
-            } else {
-                this.sortInterval = Math.max(100, Math.floor(size / 100));  // Fast mode: sort every N updates
-            }
-            
-            this.updatesSinceSort = 0;
-            this.midIdx = Math.floor(size / 2);
-        }
-        
-        update(newValue) {
-            // Replace oldest value with new value (circular buffer)
-            this.buffer[this.head] = newValue;
-            this.head = (this.head + 1) % this.size;
-            this.updatesSinceSort++;
-            
-            // Periodically re-sort for accurate median
-            if (this.updatesSinceSort >= this.sortInterval) {
-                this.sortedBuffer.set(this.buffer);
-                this.sortedBuffer.sort();
-                this.updatesSinceSort = 0;
-            }
-        }
-        
-        getMedian() {
-            // Return approximate median from last sort
-            // For even-sized arrays, average the two middle values
-            return (this.sortedBuffer[this.midIdx] + this.sortedBuffer[this.size - 1 - this.midIdx]) / 2;
-        }
-        
-        // Force a re-sort (useful at end of simulation for accurate final values)
-        forceSort() {
-            this.sortedBuffer.set(this.buffer);
-            this.sortedBuffer.sort();
-            this.updatesSinceSort = 0;
-        }
-    }
-
-    // Box-Muller transform for normal distribution (matches numpy.random.normal)
-    function normalRandom(mean, stdDev) {
-        let u = 0, v = 0;
-        while (u === 0) u = Math.random();
-        while (v === 0) v = Math.random();
-        let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-        return mean + stdDev * num;
-    }
-
-    // Round a number to specified number of significant digits
-    // Matches PDF lines 777-812 for fee rounding
-    function roundToSignificantDigits(value, digits) {
-        if (value === 0 || !isFinite(value)) {
-            return value;
-        }
-        
-        const digitsF64 = digits;
-        const exponent = Math.floor(Math.log10(Math.abs(value)) - digitsF64 + 1);
-        const factor = Math.pow(10, -exponent);
-        return Math.round(value * factor) / factor;
-    }
-
-    
     function updateCombinedChart() {
         if (!rawSimData) return;
         
@@ -742,6 +651,7 @@
         charts.ml = createChart('chartML', 'M_L', '#6f42c1');
         charts.ms = createChart('chartMS', 'M_S', '#20c997');
         charts.mn = createChart('chartMN', 'M_N', '#e83e8c');
+        charts.feeLow = createChart('chartFeeLow', 'Lowest wallet fee', '#795548');
 
         // Initialize Combined Chart (Dual Axis)
         const ctxCombined = document.getElementById('chartCombined').getContext('2d');
@@ -787,751 +697,115 @@
     }
 
     // ============================================
-    // WEBASSEMBLY SIMULATION FUNCTIONS
+    // SIMULATION ENGINES
     // ============================================
-    
-    async function runWasmSimulation(config) {
-        if (!wasmModule) {
-            throw new Error('WASM module not loaded');
-        }
 
+    // Config fields that are i64 in Rust (BigInt in JS)
+    const BIGINT_FIELDS = ['z_m', 'lt_growth_num', 'lt_growth_den', 'surge_factor', 'initial_weight',
+        'sanity_start_weight', 't_r', 't_sim'];
+
+    function runWasmSimulation(config) {
+        if (!wasmReady) throw new Error('WASM module not loaded');
         const startTime = performance.now();
-        
-        try {
-            // Create WASM configuration object
-            // Note: WASM expects BigInt for i64 types
-            const wasmConfig = new SimulationConfig(
-                config.n,
-                BigInt(config.steadyState),
-                BigInt(config.z_m),
-                BigInt(config.t_r),
-                config.r_base,
-                config.mid_100k,
-                config.mid_100,
-                BigInt(config.t_sim),
-                config.runType,
-                config.rampMultiplier,
-                config.mlMult,
-                config.mnMult,
-                config.addNoise,
-                config.usersPayMore,
-                config.simpleBlocks,
-                config.largeSimMode,
-                config.exactMedian,
-                BigInt(config.maxBlocksize || 100000000),
-                config.maxBlocksizeGrowthRate || 0.0,
-                config.useLongTermMedianCap || false,
-                BigInt(config.sanityStartWeight),
-                config.sanityStartBlock,
-                // NEW: Monero scaling 2025 parameters
-                config.useNewScalingRules || false,
-                BigInt(config.zMOld || 300000),
-                config.msCapMultiplier || 8.0,
-                config.minFeePercentage || 1.0,
-                config.walletGracePeriod || 1000,
-                config.feeLevelCount || 5,
-                config.feeRoundingDigits || 2
-            );
-            
-            // Run WASM simulation
-            const results = run_simulation(wasmConfig);
-            
-            // Get the length of result arrays
-            const len = get_result_len();
-            
-            // Read data from WASM memory using the pointer functions
-            // WASM memory is a linear buffer that we can access as typed arrays
-            const memory = wasmModule.memory.buffer;
-            
-            // Helper function to read i64 array from WASM memory
-            const readI64Array = (ptr, length) => {
-                const view = new BigInt64Array(memory, ptr, length);
-                // Convert BigInt to regular numbers for JavaScript compatibility
-                return Array.from(view, v => Number(v));
-            };
-            
-            // Helper function to read f64 array from WASM memory
-            const readF64Array = (ptr, length) => {
-                const view = new Float64Array(memory, ptr, length);
-                return Array.from(view);
-            };
-            
-            // Helper function to read u32 array from WASM memory
-            const readU32Array = (ptr, length) => {
-                const view = new Uint32Array(memory, ptr, length);
-                return Array.from(view);
-            };
-            
-            // Read all data arrays from WASM memory
-            const data = {
-                M_B: readI64Array(get_m_b_ptr(), len),
-                M_L: readI64Array(get_m_l_ptr(), len),
-                M_S: readI64Array(get_m_s_ptr(), len),
-                M_N: readI64Array(get_m_n_ptr(), len),
-                input_volume: readI64Array(get_input_vol_ptr(), len),
-                block_fee: readF64Array(get_block_fee_ptr(), len),
-                penalty: readF64Array(get_penalty_ptr(), len),
-                mempool_size: readI64Array(get_mempool_ptr(), len),
-                indices: readU32Array(get_indices_ptr(), len),
-                stats: {
-                    max_MB: Number(results.max_mb),
-                    max_Penalty: results.max_penalty,
-                    max_Mempool: Number(results.max_mempool),
-                    cumulative_fees: results.cumulative_fees
-                }
-            };
-            
-            const endTime = performance.now();
-            
-            return {
-                data,
-                time: endTime - startTime,
-                memory: 'N/A'
-            };
-            
-        } catch (error) {
-            console.error('WASM simulation error:', error);
-            throw error;
-        }
+        const c = new SimulationConfig(config.rules);
+        for (const [k, v] of Object.entries(config)) c[k] = BIGINT_FIELDS.includes(k) ? BigInt(v) : v;
+        const s = run_simulation(c); // consumes c
+        const ints = (a) => Array.from(a, Number);
+        const data = {
+            max_mb: Number(s.max_mb), max_penalty: s.max_penalty, max_mempool: Number(s.max_mempool),
+            cumulative_fees: s.cumulative_fees, rejected_txs: Number(s.rejected_txs),
+            min_fee_per_byte: s.min_fee_per_byte, data_points: s.data_points,
+            M_B: ints(get_m_b()), M_L: ints(get_m_l()), M_S: ints(get_m_s()), M_N: ints(get_m_n()),
+            input_volume: ints(get_input_volume()), block_fee: Array.from(get_block_fee()),
+            penalty: Array.from(get_penalty()), mempool_size: ints(get_mempool()),
+            fee_low: Array.from(get_fee_low()), fee_levels: Array.from(get_fee_levels()),
+        };
+        s.free();
+        data.indices = Array.from({ length: data.data_points }, (_, i) => i);
+        return { data, time: performance.now() - startTime };
     }
 
-    // ============================================
-    // JAVASCRIPT SIMULATION FUNCTIONS (from original)
-    // ============================================
-    
-    function runJsSimulation(cfg) {
+    function runJsSimulation(config) {
         const startTime = performance.now();
-        const data = runSimulationLogic(cfg);
-        const endTime = performance.now();
-        
-        return {
-            data,
-            time: endTime - startTime,
-            memory: 'N/A'
-        };
-    }
-
-    // --- CORE SIMULATION LOGIC (CORRECTED) ---
-    function runSimulationLogic(cfg) {
-        // Unpacking Configuration
-        const n = cfg.n;
-        const Z_M = cfg.z_m;
-        const T_R = cfg.t_r;
-        const R_Base = cfg.r_base;
-        let T_sim = cfg.t_sim;
-        const LARGE_SIMULATION_MODE = cfg.largeSimMode;
-        const FAST_MEDIAN = cfg.fastMedian;
-        const SIMPLE_BLOCKS = cfg.simpleBlocks;
-        
-        // Multiplier for M_L_weight calculation
-        // NEW consensus: 1.2x (PDF line 94)
-        // OLD consensus: 1.7x
-        const ML_MULT = cfg.useNewScalingRules ? 1.2 : cfg.mlMult;
-        
-        // M_S cap multiplier for new rules
-        const MS_CAP_MULT = cfg.msCapMultiplier || 8.0;
-        
-        // Window Setup
-        const mid_100k = cfg.mid_100k;
-        const mid_100 = cfg.mid_100;
-        const len_L = mid_100k * 2;  // 100000
-        const len_S = mid_100 * 2;   // 100
-
-        // Initialization - matches Python exactly
-        let M_B = 0;
-        let F_T = 0;
-        let M_L_prev = cfg.steadyState;
-        
-        // Initialize median trackers (fast or standard)
-        let M_L_list, sorted_M_L_list, M_S_list, sorted_M_S_list;
-        let fastML, fastMS;
-        
-        if (FAST_MEDIAN) {
-            // Use optimized circular buffer median tracker
-            fastML = new FastMedianTracker(len_L, cfg.steadyState, cfg.exactMedian);
-            fastMS = new FastMedianTracker(len_S, cfg.steadyState, cfg.exactMedian);
-        } else {
-            // Standard arrays (matches Python exactly)
-            M_L_list = new Array(len_L).fill(cfg.steadyState);
-            sorted_M_L_list = [...M_L_list].sort((a, b) => a - b);
-            M_S_list = new Array(len_S).fill(cfg.steadyState);
-            sorted_M_S_list = [...M_S_list].sort((a, b) => a - b);
-        }
-        
-        let mempool = [0, 0];
-        let fees = [0, 0];
-        let broadcast = [0, 0];
-        let blockfilled = [0, 0];
-        let percent_response = 0;
-        
-        // LARGE_SIMULATION_MODE variables
-        let T_sim_counter = 0;
-        let T_sim_reset_counter = 0;
-
-        // Data Storage - expanded to match Python archives
-        let results = { 
-            M_B: [], 
-            M_L: [],
-            M_S: [],
-            M_N: [],
-            M_L_weight: [],
-            M_S_weight: [],
-            input_volume: [], 
-            block_fee: [], 
-            penalty: [], 
-            mempool_size: [],
-            F_T: [],
-            f_I: [],
-            B: [],
-            T_sim: [],
-            indices: [] 
-        };
-        
-        let M_B_archive = [];  // Full archive for LARGE_SIMULATION_MODE checks
-        
-        let max_MB = 0, max_Penalty = 0, max_Mempool = 0;
-        let cumulative_fees = 0;  // Total fees paid across all blocks
-        let sampleRate = Math.max(1, Math.ceil(n / 1000));
-
-        for (let i = 0; i < n; i++) {
-            
-            // ============================================
-            // 1. MEDIAN CALCULATIONS (matches Python order)
-            // ============================================
-            
-            let M_L, M_S;
-            
-            if (FAST_MEDIAN) {
-                // Use fast median tracker
-                M_L = fastML.getMedian();
-                M_S = fastMS.getMedian();
-            } else {
-                // Standard calculation
-                // M_L = median of sorted_M_L_list
-                // Python: M_L = (sorted_M_L_list[mid_100k] + sorted_M_L_list[~mid_100k]) / 2
-                let idx_L1 = mid_100k;
-                let idx_L2 = sorted_M_L_list.length - 1 - mid_100k;
-                M_L = (sorted_M_L_list[idx_L1] + sorted_M_L_list[idx_L2]) / 2;
-                
-                // M_S = median of sorted_M_S_list
-                let idx_S1 = mid_100;
-                let idx_S2 = sorted_M_S_list.length - 1 - mid_100;
-                M_S = (sorted_M_S_list[idx_S1] + sorted_M_S_list[idx_S2]) / 2;
-            }
-            
-            // M_L_weight: value to add to M_L_list
-            // PDF NEW: M_L = median of max(min(M_B, 1.2*M_L), Z_M, M_L/1.2)
-            // PDF OLD: M_L = median of max(min(M_B, 1.7*M_L), Z_M, M_L/1.7)
-            let M_L_weight = Math.max(Math.min(M_B, ML_MULT * M_L_prev), Z_M, M_L_prev / ML_MULT);
-            
-            // M_S_weight calculation - different between old and new rules
-            // NEW RULES (PDF line 116-117): M_S = median of M_B (just M_B, no M_L constraint)
-            // OLD RULES (PDF line 38-43): M_S = median of max(M_B, M_L)
-            let M_S_weight = cfg.useNewScalingRules ? M_B : Math.max(M_B, M_L);
-            
-            // M_N calculation - different rules based on scaling version
-            // NEW (PDF line 120-130): M_N = min(max(M_S, M_L), 8*M_L)
-            // OLD (PDF line 46-50): M_N = min(M_S, 50*M_L)
-            let M_N;
-            if (cfg.useNewScalingRules) {
-                const ms_cap = MS_CAP_MULT * M_L;
-                M_N = Math.min(Math.max(M_S, M_L), ms_cap);
-            } else {
-                const mn_mult = cfg.mnMult || 50.0;
-                M_N = Math.min(M_S, mn_mult * M_L);
-            }
-            
-            // Sanity cap calculation: A_C = A_S * (1 + 5/(4*10^6))^(K_B - K_S)
-            let sanity_cap;
-            if (i >= cfg.sanityStartBlock) {
-                let blocks_elapsed = i - cfg.sanityStartBlock;
-                let growth_rate = 5.0 / (4.0 * 1000000.0); // ~40% annual growth
-                sanity_cap = Math.floor(cfg.sanityStartWeight * Math.pow(1.0 + growth_rate, blocks_elapsed));
-            } else {
-                sanity_cap = Number.MAX_SAFE_INTEGER; // Effectively no cap before start block
-            }
-            
-            // M_B_max calculation - NEW RULES: min(2*M_N, 16*M_L, A_C)
-            // OLD: M_B_max = 2 * M_N
-            // NEW: M_B_max = min(2*M_N, 16*M_L, A_C)
-            let M_B_max = Math.min(2 * M_N, 16 * M_L, sanity_cap);
-            
-            // Fee calculations - PDF Section 2a (lines 296-422)
-            // M_F = M_L for minimum fee calculation
-            // f_R = R_Base * B_RL / M_F where B_RL = T_R / M_F
-            // f_IL = f_RL for new rules (100%), f_I = 0.95*f_R for old rules (95%)
-            let f_R = R_Base * T_R / (M_L * M_L);
-            
-            // Minimum fee calculation with percentage and rounding (PDF lines 280-295, 407-422)
-            let min_fee_percentage = cfg.useNewScalingRules ?
-                (cfg.minFeePercentage || 1.0) :  // New: 1.0 (100% - no reduction, PDF line 390)
-                0.95;  // Old: 95% reduction (PDF line 263-264)
-            
-            let f_I_raw = min_fee_percentage * f_R;
-            let f_I = roundToSignificantDigits(f_I_raw, cfg.feeRoundingDigits || 2);
-            if (f_I < 1e-12) f_I = 1e-12;
-            
-            // ============================================
-            // 2. LARGE_SIMULATION_MODE T_sim scaling
-            // ============================================
-            if (LARGE_SIMULATION_MODE) {
-                let scale_setting = Math.floor(M_S / Z_M);
-                
-                if (T_sim <= scale_setting * 800 / 2) {
-                    T_sim_counter++;
-                    if (T_sim_counter > 500) {
-                        for (let j = 0; j < mempool.length; j++) {
-                            mempool[j] = Math.floor(mempool[j] / 2);
-                        }
-                        T_sim *= 2;
-                        T_sim_counter = 0;
-                    }
-                }
-                
-                if (T_sim >= scale_setting * 800 * 2) {
-                    T_sim_counter++;
-                    if (T_sim_counter > 500) {
-                        for (let j = 0; j < mempool.length; j++) {
-                            mempool[j] *= 2;
-                        }
-                        T_sim /= 2;
-                        T_sim_counter = 0;
-                    }
-                }
-                
-                if (i > 100) {
-                    if (M_B_archive[i-1] === M_B_archive[i-60]) {
-                        T_sim_reset_counter++;
-                        if (T_sim_reset_counter > 20 && T_sim > 800 && M_S < M_N + T_sim) {
-                            for (let j = 0; j < mempool.length; j++) {
-                                mempool[j] *= 2;
-                            }
-                            T_sim /= 2;
-                            T_sim_reset_counter = 0;
-                        }
-                    }
-                }
-            }
-            
-            // ============================================
-            // 3. BROADCAST NEW TRANSACTIONS
-            // ============================================
-            blockfilled[0] = 0;
-            blockfilled[1] = 0;
-            broadcast[0] = 0;
-            broadcast[1] = 0;
-            
-            let vol = 0;
-            
-            if (cfg.runType === 1) {
-                // Linear Ramp
-                vol = Z_M + 100 * i;
-            } else if (cfg.runType === 2) {
-                // Fast Linear Ramp
-                vol = Z_M + 800 * i;
-            } else if (cfg.runType === 3) {
-                // Fast Parabolic Ramp
-                vol = Math.pow(316 + (i / 15), 2);
-            } else if (cfg.runType === 4) {
-                // Fast Exponential Ramp
-                vol = Z_M * (Math.pow(1.6, 9.8 + (i / 50000)) - 99.75);
-            } else if (cfg.runType === 5) {
-                // Maximum flood
-                vol = M_B_max;
-            } else if (cfg.runType === 6) {
-                // Configurable Transaction Ramp To Sine
-                let start_val = 300000;
-                let ramp_multiplier = cfg.rampMultiplier;
-                let ramp_delay = 10;
-                let ramp_days = 14;
-                let ramp_time = ramp_days * 720;
-                
-                if (i <= ramp_delay) {
-                    vol = start_val;
-                } else if (i <= ramp_delay + ramp_time) {
-                    vol = start_val + Math.floor((ramp_multiplier - 1) * start_val / ramp_time) * (i - ramp_delay);
-                } else {
-                    vol = ramp_multiplier * start_val + 220 * Math.sin(i / 802) * 800;
-                }
-            }
-            
-            broadcast[1] = Math.floor(vol / T_sim);
-            
-            // Store input volume before noise
-            let input_volume = (broadcast[0] + broadcast[1]) * T_sim;
-            
-            // ADD_NOISE
-            if (cfg.addNoise) {
-                // Python: noise = 0.2 * np.random.normal(0, broadcast[1], 1)
-                let noise = 0.2 * normalRandom(0, broadcast[1]);
-                broadcast[1] += Math.floor(noise);
-                if (broadcast[1] <= 0) broadcast[1] = 1;
-            }
-            
-            // USERS_PAY_MORE
-            if (cfg.usersPayMore) {
-                let previous_percent_response = percent_response;
-                let percent_response_calc = Math.floor((mempool[1] / (3 * broadcast[1])) * 100);
-                if (!isFinite(percent_response_calc)) percent_response_calc = 0;
-                percent_response = Math.floor(previous_percent_response + 0.1 * (percent_response_calc - previous_percent_response));
-                
-                if (percent_response > 100) percent_response = 100;
-                if (percent_response > 0 && percent_response <= 100) {
-                    broadcast[0] = Math.floor((broadcast[1] * percent_response) / 100);
-                    broadcast[1] = Math.floor((broadcast[1] * (100 - percent_response)) / 100);
-                }
-            }
-            
-            // Update mempool with broadcast
-            for (let j = 0; j < mempool.length; j++) {
-                mempool[j] += broadcast[j];
-            }
-            
-            // Define fees paid for each tx fee level
-            fees[1] = f_R * T_sim;  // lowest fee
-            fees[0] = 16 * fees[1]; // medium fee
-            
-            // ============================================
-            // 4. BUILD NEXT BLOCK
-            // ============================================
-            let block_fee_total = 0;
-            
-            if (SIMPLE_BLOCKS) {
-                // SIMPLE MODE: Like Python v2 - just fill block from mempool
-                // Much faster, skips per-tx fee calculations
-                let mempool_total_bytes = (mempool[0] + mempool[1]) * T_sim;
-                M_B = Math.min(M_B_max, mempool_total_bytes);
-                
-                // Calculate approximate fees (simplified)
-                let B_final_approx = (M_B / M_N) - 1;
-                if (B_final_approx > 0) {
-                    // Approximate total fee as penalty that would be incurred
-                    block_fee_total = R_Base * B_final_approx * B_final_approx;
-                }
-                
-                // Remove from mempool (simplified - just reduce by bytes used)
-                let bytes_to_remove = M_B;
-                let tx_to_remove = Math.ceil(bytes_to_remove / T_sim);
-                // Remove from high-fee first, then low-fee
-                let remove_from_high = Math.min(mempool[0], tx_to_remove);
-                mempool[0] -= remove_from_high;
-                tx_to_remove -= remove_from_high;
-                mempool[1] -= Math.min(mempool[1], tx_to_remove);
-                if (mempool[0] < 0) mempool[0] = 0;
-                if (mempool[1] < 0) mempool[1] = 0;
-                
-                F_T = block_fee_total;  // Approximate
-                
-            } else {
-                // DETAILED MODE: Original per-tx fee calculation
-                M_B = 0;  // Begin building from empty block
-                let fee_set = [];
-                let break_flag = false;
-                
-                for (let k = 0; k < mempool.length; k++) {
-                    if (break_flag) break;
-                    
-                    for (let l = 0; l < mempool[k]; l++) {
-                        // Check if we are allowed to grow the block
-                        if (M_B >= M_B_max) {
-                            blockfilled[0] = k;
-                            blockfilled[1] = l;
-                            break_flag = true;
-                            break;
-                        }
-                        
-                        // Check necessary fees to expand block to new size
-                        let B = (M_B / M_N) - 1;
-                        let T_T = T_sim;
-                        if (T_T > M_B - M_N && M_B - M_N > 0) {
-                            T_T = M_B - M_N;
-                        }
-                        let B_T = T_T / M_N;
-                        F_T = R_Base * (2 * B * B_T + B_T * B_T);
-                        if (B + B_T <= 0) F_T = 0;
-                        
-                        fee_set.push(F_T);
-                        
-                        if (fees[k] < F_T) {
-                            blockfilled[0] = k;
-                            blockfilled[1] = l;
-                            break_flag = true;
-                            break;
-                        }
-                        
-                        M_B += T_sim;
-                    }
-                }
-                
-                // Handle case where all tx were processed
-                if (blockfilled[0] === 0 && blockfilled[1] === 0) {
-                    if (mempool[1] !== 0) {
-                        blockfilled[0] = 1;
-                        blockfilled[1] = mempool[1];
-                    } else if (mempool[0] !== 0) {
-                        blockfilled[0] = 0;
-                        blockfilled[1] = mempool[0];
-                    }
-                }
-                
-                // Calculate fees paid to create block
-                // Python: block_fee_total += (blockfilled[1] - 1) * fees[blockfilled[0]]
-                for (let k = 0; k < blockfilled[0]; k++) {
-                    block_fee_total += mempool[k] * fees[k];
-                }
-                block_fee_total += (blockfilled[1] - 1) * fees[blockfilled[0]];  // FIXED: -1
-                
-                // Remove included tx from mempool
-                for (let k = 0; k < blockfilled[0]; k++) {
-                    mempool[k] = 0;
-                }
-                mempool[blockfilled[0]] -= blockfilled[1];
-                if (mempool[blockfilled[0]] < 0) mempool[blockfilled[0]] = 0;
-            }
-            
-            // Add to cumulative total
-            cumulative_fees += block_fee_total;
-            
-            // ============================================
-            // 5. PENALTY CALCULATION
-            // ============================================
-            let B_final = (M_B / M_N) - 1;
-            let P_B = R_Base * (B_final * B_final);
-            if (B_final <= 0) P_B = 0;
-            
-            // ============================================
-            // 6. UPDATE MEDIAN LISTS
-            // ============================================
-            if (FAST_MEDIAN) {
-                // Fast mode: use circular buffer
-                fastML.update(M_L_weight);
-                fastMS.update(M_S_weight);
-            } else {
-                // Standard mode: maintain sorted lists
-                // Update Long Term Median Lists
-                let old_L = M_L_list.shift();
-                removeValue(sorted_M_L_list, old_L);
-                M_L_list.push(M_L_weight);
-                insort(sorted_M_L_list, M_L_weight);
-                
-                // Update Short Term Median Lists
-                let old_S = M_S_list.shift();
-                removeValue(sorted_M_S_list, old_S);
-                M_S_list.push(M_S_weight);
-                insort(sorted_M_S_list, M_S_weight);
-            }
-            
-            // Store M_L for calculation in next block
-            M_L_prev = M_L;
-            
-            // Store M_B for archive (needed for LARGE_SIMULATION_MODE)
-            M_B_archive.push(M_B);
-            
-            // ============================================
-            // 7. STORE DATA FOR PLOTTING
-            // ============================================
-            let mempool_size_bytes = (mempool[0] + mempool[1]) * T_sim;
-            if (mempool_size_bytes > max_Mempool) max_Mempool = mempool_size_bytes;
-            if (M_B > max_MB) max_MB = M_B;
-            if (P_B > max_Penalty) max_Penalty = P_B;
-            
-            // Sample data points for charting
-            if (i % sampleRate === 0) {
-                results.indices.push(i);
-                results.M_B.push(M_B);
-                results.M_L.push(M_L);
-                results.M_S.push(M_S);
-                results.M_N.push(M_N);
-                results.M_L_weight.push(M_L_weight);
-                results.M_S_weight.push(M_S_weight);
-                // Calculate total volume after noise and fee splitting
-                results.input_volume.push((broadcast[0] + broadcast[1]) * T_sim);
-                results.block_fee.push(block_fee_total);
-                results.penalty.push(P_B);
-                results.mempool_size.push(mempool_size_bytes);
-                results.F_T.push(F_T);
-                results.f_I.push(f_I);
-                results.B.push(B_final);
-                results.T_sim.push(T_sim);
-            }
-        }
-        
-        // Force final sort for accurate end values in fast median mode
-        if (FAST_MEDIAN) {
-            fastML.forceSort();
-            fastMS.forceSort();
-        }
-
-        results.stats = { max_MB, max_Penalty, max_Mempool, cumulative_fees };
-        return results;
-    }
-
-    // Binary Search for inserting into sorted arrays
-    function binarySearch(arr, val) {
-        let start = 0, end = arr.length - 1;
-        while (start <= end) {
-            let mid = Math.floor((start + end) / 2);
-            if (arr[mid] === val) return mid;
-            if (arr[mid] < val) start = mid + 1;
-            else end = mid - 1;
-        }
-        return start;
-    }
-    
-    function insort(arr, val) {
-        arr.splice(binarySearch(arr, val), 0, val);
-    }
-    
-    function removeValue(arr, val) {
-        let idx = binarySearch(arr, val);
-        // Handle case where binary search finds insertion point, not exact match
-        if (idx < arr.length && arr[idx] === val) {
-            arr.splice(idx, 1);
-        } else {
-            // Fallback to indexOf for edge cases
-            let exactIdx = arr.indexOf(val);
-            if (exactIdx > -1) arr.splice(exactIdx, 1);
-        }
+        const data = runSimulationJS(config);
+        return { data, time: performance.now() - startTime };
     }
 
     // --- UI INTERACTION ---
-    
+
     // Global variable to store raw simulation data for rescaling
     let rawSimData = null;
-    
+
+    const getVal = (id) => parseFloat(document.getElementById(id).value);
+    const getInt = (id) => parseInt(document.getElementById(id).value);
+    const isCustom = () => getInt('rules') === 2;
+
+    function buildConfig() {
+        const rules = getInt('rules');
+        let config;
+        if (rules === 2) {
+            config = {
+                ...presetConfig(2),
+                z_m: getInt('z_m'),
+                lt_growth_num: Math.round(getVal('lt_growth') * 1000),
+                lt_growth_den: 1000,
+                surge_factor: getInt('surge_factor'),
+                long_window: getInt('long_window'),
+                short_window: getInt('short_window'),
+                initial_weight: getInt('initial_weight'),
+                sanity_cap: document.getElementById('sanity_cap').checked,
+                sanity_start_weight: getInt('sanity_start_weight'),
+                sanity_start_block: getInt('sanity_start_block'),
+                t_r: getInt('t_r'),
+                min_fee_fraction: getVal('min_fee_fraction'),
+                wallet_grace_blocks: getInt('wallet_grace_blocks'),
+                fee_rounding_digits: getInt('fee_rounding_digits'),
+                r_base: getVal('r_base'),
+                t_sim: getInt('t_sim'),
+            };
+        } else {
+            config = presetConfig(rules); // exact preset values (17/10 or 6/5)
+        }
+        config.n = getInt('n');
+        config.run_type = getInt('run_type');
+        config.ramp_multiplier = getVal('ramp_multiplier');
+        config.add_noise = document.getElementById('add_noise').checked;
+        config.users_pay_more = document.getElementById('users_pay_more').checked;
+        config.fee_level = getInt('fee_level');
+        config.rational_miners = document.getElementById('rational_miners').checked;
+        return config;
+    }
+
     async function startSimulation() {
         const compareMode = document.getElementById('compareMode').checked;
         const engineWasm = document.getElementById('engineWasm').checked;
-        const engineJs = document.getElementById('engineJs').checked;
-        
-        // Show loading overlay IMMEDIATELY with initial status
+
         document.getElementById('loadingOverlay').style.display = 'flex';
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('performanceBadge').style.display = compareMode ? 'inline-block' : 'none';
         document.getElementById('performanceOutput').style.display = compareMode ? 'block' : 'none';
-        
-        // Show immediate feedback BEFORE any processing
-        if (compareMode) {
-            updateProgress('Preparing to run performance comparison...', 5);
-        } else if (engineWasm) {
-            updateProgress('Preparing WebAssembly simulation...', 5);
-        } else {
-            updateProgress('Preparing JavaScript simulation...', 5);
-        }
-        
+        updateProgress(compareMode ? 'Preparing to run both engines...' : engineWasm ? 'Preparing WebAssembly simulation...' : 'Preparing JavaScript simulation...', 5);
+
         // Allow UI to update before blocking on simulation
         await new Promise(resolve => setTimeout(resolve, 50));
-        
-        const getVal = (id) => parseFloat(document.getElementById(id).value);
-        const getInt = (id) => parseInt(document.getElementById(id).value);
-        
-        // Get scaling rules configuration
-        const scalingRules = document.getElementById('scaling_rules').value;
-        let useNewScalingRules = false;
-        let zMOld = 300000;
-        let msCapMultiplier = 50.0;
-        let minFeePercentage = 0.95;
-        let walletGracePeriod = 10;
-        let feeLevelCount = 4;
-        let feeRoundingDigits = 2;
-        
-        if (scalingRules === 'new') {
-            useNewScalingRules = true;
-            zMOld = 300000;
-            msCapMultiplier = 8.0;
-            minFeePercentage = 1.0;
-            walletGracePeriod = 1000;
-            feeLevelCount = 5;
-            feeRoundingDigits = 2;
-        } else if (scalingRules === 'old') {
-            useNewScalingRules = false;
-            zMOld = 300000;
-            msCapMultiplier = 50.0;
-            minFeePercentage = 0.95;
-            walletGracePeriod = 10;
-            feeLevelCount = 4;
-            feeRoundingDigits = 2;
-        } else if (scalingRules === 'custom') {
-            useNewScalingRules = true; // Custom uses new rules framework
-            zMOld = getInt('z_m_old');
-            // Use the main M_S Cap Multiplier field when in custom mode
-            msCapMultiplier = getVal('ms_cap_multiplier_main');
-            minFeePercentage = getVal('min_fee_percentage');
-            walletGracePeriod = getInt('wallet_grace_period');
-            feeLevelCount = getInt('fee_level_count');
-            feeRoundingDigits = getInt('fee_rounding_digits');
-        }
-        
-        const config = {
-            n: getInt('n'),
-            steadyState: getInt('steady_state'),
-            z_m: getInt('z_m'),
-            t_r: getInt('t_r'),
-            r_base: getVal('r_base'),
-            mid_100k: getInt('mid_100k'),
-            mid_100: getInt('mid_100'),
-            t_sim: getInt('t_sim'),
-            runType: getInt('run_type'),
-            rampMultiplier: getVal('ramp_multiplier'),
-            addNoise: document.getElementById('add_noise').checked,
-            usersPayMore: document.getElementById('users_pay_more').checked,
-            largeSimMode: document.getElementById('large_sim_mode').checked,
-            mlMult: getVal('ml_mult'),
-            mnMult: getVal('mn_mult'),
-            fastMedian: document.getElementById('fast_median').checked,
-            exactMedian: document.getElementById('exact_median').checked,
-            simpleBlocks: document.getElementById('simple_blocks').checked,
-            useWorkers: document.getElementById('use_workers').checked,
-            sanityStartWeight: getInt('sanity_start_weight'),
-            sanityStartBlock: getInt('sanity_start_block'),
-            maxBlocksize: 100000000,
-            maxBlocksizeGrowthRate: 0.0,
-            useLongTermMedianCap: false,
-            // NEW: Monero scaling 2025 parameters
-            useNewScalingRules: useNewScalingRules,
-            zMOld: zMOld,
-            msCapMultiplier: msCapMultiplier,
-            minFeePercentage: minFeePercentage,
-            walletGracePeriod: walletGracePeriod,
-            feeLevelCount: feeLevelCount,
-            feeRoundingDigits: feeRoundingDigits
-        };
-        
-        // Clear previous results
+
         performanceResults = {};
-        
         try {
+            const config = buildConfig();
             if (compareMode || engineWasm) {
-                updateProgress('Initializing WebAssembly engine...', 0);
-                performanceResults.wasm = await runWasmSimulation(config);
+                updateProgress('Running WebAssembly engine...', 0);
+                performanceResults.wasm = runWasmSimulation(config);
                 updateProgress('WebAssembly simulation complete!', 100);
             }
-            
-            if (compareMode || engineJs) {
+            if (compareMode || !engineWasm) {
                 updateProgress('Running JavaScript engine...', 0);
+                await new Promise(resolve => setTimeout(resolve, 20));
                 performanceResults.js = runJsSimulation(config);
                 updateProgress('JavaScript simulation complete!', 100);
             }
-            
-            // Display results
-            if (engineWasm && performanceResults.wasm) {
-                displayResults(performanceResults.wasm.data, config, performanceResults.wasm.time);
-            }
-            
-            if (engineJs && performanceResults.js) {
-                if (compareMode) {
-                    // In compare mode, show the faster engine's results
-                    const fasterResult = performanceResults.wasm.time < performanceResults.js.time ? performanceResults.wasm : performanceResults.js;
-                    displayResults(fasterResult.data, config, fasterResult.time);
-                } else {
-                    displayResults(performanceResults.js.data, config, performanceResults.js.time);
-                }
-            }
-            
-            if (compareMode) {
-                updatePerformanceOutput();
-            }
-            
+            const shown = performanceResults.wasm || performanceResults.js;
+            displayResults(shown.data, config, shown.time);
+            if (compareMode) updatePerformanceOutput();
         } catch (error) {
             console.error('Simulation error:', error);
             updateProgress('Error: ' + error.message, 0);
@@ -1541,23 +815,19 @@
             }, 500);
         }
     }
-    
+
     function updateProgress(message, progress) {
         document.getElementById('progressText').textContent = message;
         document.getElementById('progressBar').style.width = progress + '%';
         document.getElementById('progressBar').textContent = Math.round(progress) + '%';
     }
-    
+
     function displayResults(data, config, calcTime) {
-        // Store raw data for rescaling
         rawSimData = data;
-        
-        // Store for stats re-display when toggle changes
         lastStatsData = data;
         lastStatsConfig = config;
         lastCalcTime = calcTime;
 
-        // Update Single Charts
         updateChart(charts.blockSize, data.indices, data.M_B);
         updateChart(charts.mempool, data.indices, data.mempool_size);
         updateChart(charts.volume, data.indices, data.input_volume);
@@ -1566,12 +836,10 @@
         updateChart(charts.ml, data.indices, data.M_L);
         updateChart(charts.ms, data.indices, data.M_S);
         updateChart(charts.mn, data.indices, data.M_N);
+        updateChart(charts.feeLow, data.indices, data.fee_low);
 
-        // Update Combined Chart with current scale settings
         charts.combined.data.labels = data.indices;
         updateCombinedChart();
-
-        // Update stats output using the formatting function
         updateStatsOutput(data, config, calcTime);
     }
 
@@ -1581,139 +849,71 @@
         chart.update();
     }
 
-    // Initialize WebAssembly and start the application
-    async function main() {
-        try {
-            // Initialize WebAssembly module
-            wasmModule = await init();
-            console.log('WebAssembly module loaded successfully');
-            
-            // Test WASM functionality
-            const testResult = test_wasm();
-            console.log('WASM test result:', testResult);
-            
-            // Initialize charts
-            initCharts();
-            
-            // Hide loading overlay if it was shown during initialization
-            document.getElementById('loadingOverlay').style.display = 'none';
-            
-        } catch (error) {
-            console.error('Failed to load WebAssembly module:', error);
-            document.getElementById('loadingOverlay').style.display = 'none';
-            
-            // Show error message to user
-            alert('Failed to load WebAssembly module. Falling back to JavaScript-only mode. Error: ' + error.message);
-            
-            // Disable WASM option
-            document.getElementById('engineWasm').disabled = true;
-            document.getElementById('compareMode').disabled = true;
-        }
+    // ============================================
+    // RULE PRESETS
+    // ============================================
+
+    const PRESET_FIELDS = ['z_m', 'lt_growth', 'surge_factor', 'long_window', 'short_window', 'initial_weight',
+        't_r', 'min_fee_fraction', 'wallet_grace_blocks', 'fee_rounding_digits', 'r_base', 't_sim'];
+    const SANITY_FIELDS = ['sanity_cap', 'sanity_start_weight', 'sanity_start_block'];
+    const T_SIM_HINTS = { 0: '≈ typical current transaction', 1: 'FCMP++ 2-in/2-out weight per the consensus formula' };
+
+    function fillFeeLevels() {
+        const sel = document.getElementById('fee_level');
+        const prev = sel.value || '-1';
+        const rules = getInt('rules');
+        const names = feeLevelNames(rules === 0 ? 0 : 1);
+        sel.innerHTML = '<option value="-1">Auto (what wallets do by default)</option>' +
+            names.map((nm, i) => `<option value="${i}">${nm}</option>`).join('');
+        sel.value = (parseInt(prev) < names.length) ? prev : '-1';
     }
 
-    // Helper function to show/hide fields
-    function setFieldVisibility(fieldId, visible) {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.style.display = visible ? 'block' : 'none';
+    function updateRulesFields() {
+        const rules = getInt('rules');
+        const custom = rules === 2;
+        if (!custom) {
+            const p = presetConfig(rules);
+            const vals = {
+                z_m: p.z_m, lt_growth: p.lt_growth_num / p.lt_growth_den, surge_factor: p.surge_factor,
+                long_window: p.long_window, short_window: p.short_window, initial_weight: p.initial_weight,
+                t_r: p.t_r, min_fee_fraction: p.min_fee_fraction, wallet_grace_blocks: p.wallet_grace_blocks,
+                fee_rounding_digits: p.fee_rounding_digits, r_base: p.r_base, t_sim: p.t_sim,
+            };
+            for (const id of PRESET_FIELDS) document.getElementById(id).value = vals[id];
+            document.getElementById('sanity_cap').checked = false;
         }
+        for (const id of PRESET_FIELDS.concat(SANITY_FIELDS)) document.getElementById(id).disabled = !custom;
+        document.getElementById('t_sim_hint').textContent = T_SIM_HINTS[rules] || 'Weight of one simulated transaction.';
+        fillFeeLevels();
     }
-    
-    // Function to update form fields based on scaling rules selection
-    function updateScalingRulesFields() {
-        const scalingRules = document.getElementById('scaling_rules').value;
-        
-        // Show/hide custom fields based on selection
-        const customFields = [
-            'field_z_m_old', 'field_ms_cap_multiplier', 'field_min_fee_percentage',
-            'field_wallet_grace_period', 'field_fee_level_count', 'field_fee_rounding_digits'
-        ];
-        
-        const showCustomFields = (scalingRules === 'custom');
-        customFields.forEach(fieldId => {
-            setFieldVisibility(fieldId, showCustomFields);
-        });
-        
-        // Enable/disable input fields within custom sections
-        const customInputFields = [
-            'z_m_old', 'ms_cap_multiplier', 'min_fee_percentage',
-            'wallet_grace_period', 'fee_level_count', 'fee_rounding_digits'
-        ];
-        
-        customInputFields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.disabled = !showCustomFields;
-                field.style.opacity = showCustomFields ? '1' : '0.5';
-            }
-        });
-        
-        // Show/hide main Z_M field (hide when custom is selected)
-        setFieldVisibility('field_z_m', scalingRules !== 'custom');
-        
-        // Show/hide M_N Cap Factor (only relevant for old rules)
-        setFieldVisibility('field_mn_mult', scalingRules === 'old');
-        
-        // Show/hide M_S Cap Multiplier in main section (only for custom)
-        setFieldVisibility('field_ms_cap_multiplier_main', scalingRules === 'custom');
-        
-        // Update main form fields based on selection
-        if (scalingRules === 'old') {
-            document.getElementById('z_m').value = 300000;
-            document.getElementById('t_r').value = 3000;
-            document.getElementById('ml_mult').value = 1.7;
-            document.getElementById('mn_mult').value = 50.0;
-            
-            // Update descriptions
-            document.querySelector('label[for="z_m"] + small').innerHTML = 'Current penalty free block weight. <b>Old: 300kB</b>';
-            document.querySelector('label[for="t_r"] + small').innerHTML = 'Reference tx weight for fee calculation. <b>Old: 3kB</b>';
-            document.querySelector('label[for="ml_mult"] + small').innerHTML = 'M_L_weight = max(min(M_B, <b>X</b>·M_L), Z_M, M_L/<b>X</b>). Old=1.7, New=2';
-            document.querySelector('label[for="mn_mult"] + small').innerHTML = '<b>OLD RULES:</b> M_N = min(M_S, X×M_L). Default is 50×';
-            
-        } else if (scalingRules === 'new') {
-            document.getElementById('z_m').value = 1000000;
-            document.getElementById('t_r').value = 10000;
-            document.getElementById('ml_mult').value = 2;
-            document.getElementById('mn_mult').value = 8.0;
-            
-            // Update descriptions
-            document.querySelector('label[for="z_m"] + small').innerHTML = 'Current penalty free block weight. <b>New: 1MB (was 300kB)</b>';
-            document.querySelector('label[for="t_r"] + small').innerHTML = 'Reference tx weight for fee calculation. <b>New: 10kB (was 3kB)</b>';
-            document.querySelector('label[for="ml_mult"] + small').innerHTML = 'M_L_weight = max(min(M_B, <b>X</b>·M_L), Z_M, M_L/<b>X</b>). New=2, Old=1.7';
-            document.querySelector('label[for="mn_mult"] + small').innerHTML = '<b>NEW RULES:</b> M_N = M_S (no cap). This field kept for backwards compatibility.';
+
+    // Initialize WebAssembly and start the application
+    async function main() {
+        initCharts();
+        try {
+            await init();
+            console.log('WebAssembly module loaded successfully:', test_wasm());
+            wasmReady = true;
+        } catch (error) {
+            console.error('Failed to load WebAssembly module:', error);
+            alert('Failed to load WebAssembly module. Falling back to JavaScript-only mode. Error: ' + error.message);
+            document.getElementById('engineWasm').disabled = true;
+            document.getElementById('engineJs').checked = true;
+            document.getElementById('compareMode').disabled = true;
         }
-        
-        // Set custom field values when switching to custom
-        if (scalingRules === 'custom') {
-            document.getElementById('z_m_old').value = 300000;
-            document.getElementById('ms_cap_multiplier').value = 8.0;
-            document.getElementById('ms_cap_multiplier_main').value = 8.0;
-            document.getElementById('min_fee_percentage').value = 1.0;
-            document.getElementById('wallet_grace_period').value = 1000;
-            document.getElementById('fee_level_count').value = 5;
-            document.getElementById('fee_rounding_digits').value = 2;
-        }
+        document.getElementById('loadingOverlay').style.display = 'none';
     }
-    
-    // Add event listener for scaling rules dropdown
-    document.addEventListener('DOMContentLoaded', function() {
-        const scalingRulesSelect = document.getElementById('scaling_rules');
-        if (scalingRulesSelect) {
-            scalingRulesSelect.addEventListener('change', updateScalingRulesFields);
-            // Initialize fields based on default selection
-            updateScalingRulesFields();
-        }
-    });
-    
-    // Start the application
+
+    document.getElementById('rules').addEventListener('change', updateRulesFields);
+    updateRulesFields();
+
     window.onload = main;
-    
+
     // Make functions available globally
     window.startSimulation = startSimulation;
     window.updateStatsDisplay = updateStatsDisplay;
     window.updateCombinedChart = updateCombinedChart;
     window.resetScales = resetScales;
-    window.updateScalingRulesFields = updateScalingRulesFields;
 
 </script>
 </body>
