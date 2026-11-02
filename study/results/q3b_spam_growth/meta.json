@@ -3,7 +3,7 @@
   "description": "Q3b/c: spammer raising M_L and adding bytes, 2 years of attack then 1 year of recovery",
   "scenario_file": "scenarios/q3b_spam_growth.json",
   "scenario_text": "{\n \"name\": \"q3b_spam_growth\",\n \"description\": \"Q3b/c: spammer raising M_L and adding bytes, 2 years of attack then 1 year of recovery\",\n \"series_every\": 500,\n \"series_seeds\": 2,\n \"seeds\": 4,\n \"base\": {\n  \"blocks\": 788400,\n  \"demand\": {\n   \"txs_per_block\": 38,\n   \"poisson\": true\n  },\n  \"spam\": {\n   \"start\": 1000,\n   \"blocks\": 525600,\n   \"level\": 0\n  }\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"v16\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 2500\n     }\n    ],\n    \"spam\": {\n     \"weight\": 2500\n    }\n   },\n   {\n    \"label\": \"v16_9093\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ],\n    \"spam\": {\n     \"weight\": 9093\n    }\n   },\n   {\n    \"label\": \"v17\",\n    \"rules\": \"v17\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ],\n    \"spam\": {\n     \"weight\": 9093\n    }\n   }\n  ],\n  [\n   {\n    \"label\": \"clamp_L0\",\n    \"spam\": {\n     \"mode\": \"fill_to\",\n     \"target_mn\": 0.0,\n     \"target_clamp\": true\n    }\n   },\n   {\n    \"label\": \"mn_L0\",\n    \"spam\": {\n     \"mode\": \"fill_to\",\n     \"target_mn\": 1.0\n    }\n   },\n   {\n    \"label\": \"topup_L0\",\n    \"spam\": {\n     \"mode\": \"topup\",\n     \"target_mn\": 1.0\n    }\n   },\n   {\n    \"label\": \"clamp_top\",\n    \"spam\": {\n     \"mode\": \"fill_to\",\n     \"target_mn\": 0.0,\n     \"target_clamp\": true,\n     \"level\": \"top\"\n    }\n   },\n   {\n    \"label\": \"surgecap_L0\",\n    \"spam\": {\n     \"mode\": \"fill_to\",\n     \"target_mn\": 1.0,\n     \"target_ml\": 8.0\n    }\n   }\n  ]\n ]\n}",
-  "git_commit": "0f1166426bbb14f3a4395a8036280c7a96595ae2-dirty",
+  "git_commit": "32ac6c0a202614e292e095cff075e14e83ab6c24",
   "runs": 60,
   "failures": 0,
   "seeds": 4,
@@ -11,6 +11,6 @@
   "series_every": 500,
   "series_seeds": 2,
   "history": "",
-  "wall_seconds": 1.719593056,
+  "wall_seconds": 1.8808211080000001,
   "threads": 12
 }

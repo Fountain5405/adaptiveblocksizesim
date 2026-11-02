@@ -3,7 +3,7 @@
   "description": "Q5b: daily demand cycle around Z_M",
   "scenario_file": "scenarios/q5b_daily.json",
   "scenario_text": "{\n \"name\": \"q5b_daily\",\n \"description\": \"Q5b: daily demand cycle around Z_M\",\n \"series_every\": 20,\n \"series_seeds\": 2,\n \"seeds\": 8,\n \"base\": {\n  \"blocks\": 30000,\n  \"demand\": {\n   \"poisson\": true,\n   \"zm_mult\": 1.0\n  }\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"v16\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 2500\n     }\n    ]\n   },\n   {\n    \"label\": \"v17\",\n    \"rules\": \"v17\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ]\n   }\n  ],\n  [\n   {\n    \"label\": \"auto\"\n   },\n   {\n    \"label\": \"auto_upm\",\n    \"users_pay_more\": true\n   }\n  ]\n ],\n \"grid\": {\n  \"demand.daily_amplitude\": [\n   0.2,\n   0.5,\n   0.9\n  ],\n  \"demand.zm_mult\": [\n   0.7,\n   1.0,\n   1.5\n  ]\n }\n}",
-  "git_commit": "0f1166426bbb14f3a4395a8036280c7a96595ae2-dirty",
+  "git_commit": "32ac6c0a202614e292e095cff075e14e83ab6c24",
   "runs": 288,
   "failures": 0,
   "seeds": 8,
@@ -11,6 +11,6 @@
   "series_every": 20,
   "series_seeds": 2,
   "history": "",
-  "wall_seconds": 0.513041649,
+  "wall_seconds": 0.560375119,
   "threads": 12
 }

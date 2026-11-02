@@ -35,78 +35,78 @@ blocks to 2× M_L,T_R,20000.0,186194.6050283581,144
 blocks to 2× M_L,tx weight,7650.0,186342.2131486033,192
 blocks to 2× M_L,tx weight,9093.0,186323.1065022749,192
 blocks to 2× M_L,tx weight,11851.0,186306.71914293105,192
-10× 1-day surge: mean wait,Z_M,300000.0,382.5712534305729,192
-10× 1-day surge: mean wait,Z_M,625000.0,616.744952049983,192
-10× 1-day surge: mean wait,Z_M,1000000.0,533.156794694126,192
-10× 1-day surge: mean wait,clamp,1.1,501.08202252588416,144
-10× 1-day surge: mean wait,clamp,1.2,501.08202252588416,144
-10× 1-day surge: mean wait,clamp,1.4,501.08202252588416,144
-10× 1-day surge: mean wait,clamp,1.7,501.08202252588416,144
-10× 1-day surge: mean wait,surge,4.0,640.4531046279309,144
-10× 1-day surge: mean wait,surge,8.0,500.8761546246955,144
-10× 1-day surge: mean wait,surge,16.0,447.3878965317134,144
-10× 1-day surge: mean wait,surge,50.0,439.2337470020149,144
-10× 1-day surge: mean wait,T_R,3000.0,1025.439395381804,144
-10× 1-day surge: mean wait,T_R,10000.0,528.7199162291522,144
-10× 1-day surge: mean wait,T_R,12500.0,437.04909139575375,144
-10× 1-day surge: mean wait,T_R,20000.0,265.80642750194426,144
-10× 1-day surge: mean wait,tx weight,7650.0,455.6744854094054,192
-10× 1-day surge: mean wait,tx weight,9093.0,496.7417129162372,192
-10× 1-day surge: mean wait,tx weight,11851.0,555.8179511941948,192
-10× 1-day surge: clear time,Z_M,300000.0,136.95498610356177,192
-10× 1-day surge: clear time,Z_M,625000.0,753.2118487711775,192
-10× 1-day surge: clear time,Z_M,1000000.0,897.5694626033747,192
-10× 1-day surge: clear time,clamp,1.1,452.86581107999564,144
-10× 1-day surge: clear time,clamp,1.2,452.86581107999564,144
-10× 1-day surge: clear time,clamp,1.4,452.86581107999564,144
-10× 1-day surge: clear time,clamp,1.7,452.86581107999564,144
-10× 1-day surge: clear time,surge,4.0,1156.9345008223834,144
-10× 1-day surge: clear time,surge,8.0,624.5765983258347,144
-10× 1-day surge: clear time,surge,16.0,273.5242968736856,144
-10× 1-day surge: clear time,surge,50.0,212.38535082877374,144
-10× 1-day surge: clear time,T_R,3000.0,2051.46043878753,144
-10× 1-day surge: clear time,T_R,10000.0,562.7705231752016,144
-10× 1-day surge: clear time,T_R,12500.0,314.43045706364813,144
-10× 1-day surge: clear time,T_R,20000.0,115.25967170237976,144
-10× 1-day surge: clear time,tx weight,7650.0,442.07471812781904,192
-10× 1-day surge: clear time,tx weight,9093.0,448.7851929674725,192
-10× 1-day surge: clear time,tx weight,11851.0,468.1376454680587,192
-50× 1-day surge: mean wait,Z_M,300000.0,1433.6852128123949,192
-50× 1-day surge: mean wait,Z_M,625000.0,1678.7063286012879,192
-50× 1-day surge: mean wait,Z_M,1000000.0,1842.2967011913117,192
-50× 1-day surge: mean wait,clamp,1.1,1642.8483200388796,144
-50× 1-day surge: mean wait,clamp,1.2,1642.8483200388796,144
-50× 1-day surge: mean wait,clamp,1.4,1642.8483200388796,144
-50× 1-day surge: mean wait,clamp,1.7,1642.8483200388796,144
-50× 1-day surge: mean wait,surge,4.0,2895.1524130266407,144
-50× 1-day surge: mean wait,surge,8.0,1813.2221527019733,144
-50× 1-day surge: mean wait,surge,16.0,1325.1733614171212,144
-50× 1-day surge: mean wait,surge,50.0,1046.9360712896116,144
-50× 1-day surge: mean wait,T_R,3000.0,3367.996315187326,144
-50× 1-day surge: mean wait,T_R,10000.0,1605.875411155925,144
-50× 1-day surge: mean wait,T_R,12500.0,1380.4452592824364,144
-50× 1-day surge: mean wait,T_R,20000.0,975.4062420472765,144
-50× 1-day surge: mean wait,tx weight,7650.0,1508.9637574675824,192
-50× 1-day surge: mean wait,tx weight,9093.0,1617.3044835779608,192
-50× 1-day surge: mean wait,tx weight,11851.0,1816.8517630158276,192
-50× 1-day surge: clear time,Z_M,300000.0,2148.2127661681598,192
-50× 1-day surge: clear time,Z_M,625000.0,2204.4505810772007,192
-50× 1-day surge: clear time,Z_M,1000000.0,2512.007323846465,192
-50× 1-day surge: clear time,clamp,1.1,2282.793498095679,144
-50× 1-day surge: clear time,clamp,1.2,2282.793498095679,144
-50× 1-day surge: clear time,clamp,1.4,2282.793498095679,144
-50× 1-day surge: clear time,clamp,1.7,2282.793498095679,144
-50× 1-day surge: clear time,surge,4.0,5955.335084302688,144
-50× 1-day surge: clear time,surge,8.0,2905.839139598541,144
-50× 1-day surge: clear time,surge,16.0,1677.6290499817749,144
-50× 1-day surge: clear time,surge,50.0,934.9927249302717,144
-50× 1-day surge: clear time,T_R,3000.0,5353.295170273271,144
-50× 1-day surge: clear time,T_R,10000.0,2233.4162690749586,144
-50× 1-day surge: clear time,T_R,12500.0,1873.0268251856369,144
-50× 1-day surge: clear time,T_R,20000.0,1212.3473097799854,144
-50× 1-day surge: clear time,tx weight,7650.0,2009.3934862607462,192
-50× 1-day surge: clear time,tx weight,9093.0,2224.299536510909,192
-50× 1-day surge: clear time,tx weight,11851.0,2661.569486771378,192
+10× 1-day surge: mean wait,Z_M,300000.0,266.63895317835517,192
+10× 1-day surge: mean wait,Z_M,625000.0,391.5889508643322,192
+10× 1-day surge: mean wait,Z_M,1000000.0,328.34257125082223,192
+10× 1-day surge: mean wait,clamp,1.1,324.870531506272,144
+10× 1-day surge: mean wait,clamp,1.2,324.870531506272,144
+10× 1-day surge: mean wait,clamp,1.4,324.870531506272,144
+10× 1-day surge: mean wait,clamp,1.7,324.870531506272,144
+10× 1-day surge: mean wait,surge,4.0,379.0574258956044,144
+10× 1-day surge: mean wait,surge,8.0,327.4311958033456,144
+10× 1-day surge: mean wait,surge,16.0,300.4080238660178,144
+10× 1-day surge: mean wait,surge,50.0,298.73117907116887,144
+10× 1-day surge: mean wait,T_R,3000.0,538.9552037161206,144
+10× 1-day surge: mean wait,T_R,10000.0,341.90439169830506,144
+10× 1-day surge: mean wait,T_R,12500.0,295.9619391206551,144
+10× 1-day surge: mean wait,T_R,20000.0,204.09203160170136,144
+10× 1-day surge: mean wait,tx weight,7650.0,341.06232253706725,192
+10× 1-day surge: mean wait,tx weight,9093.0,328.0502785717614,192
+10× 1-day surge: mean wait,tx weight,11851.0,306.4452332095018,192
+10× 1-day surge: share mined,Z_M,300000.0,0.6378756326681501,192
+10× 1-day surge: share mined,Z_M,625000.0,0.5306965865053492,192
+10× 1-day surge: share mined,Z_M,1000000.0,0.6051184963742386,192
+10× 1-day surge: share mined,clamp,1.1,0.5905929197557318,144
+10× 1-day surge: share mined,clamp,1.2,0.5905929197557318,144
+10× 1-day surge: share mined,clamp,1.4,0.5905929197557318,144
+10× 1-day surge: share mined,clamp,1.7,0.5905929197557318,144
+10× 1-day surge: share mined,surge,4.0,0.5550248278309484,144
+10× 1-day surge: share mined,surge,8.0,0.6006990144839621,144
+10× 1-day surge: share mined,surge,16.0,0.6035946082957839,144
+10× 1-day surge: share mined,surge,50.0,0.6035946082957839,144
+10× 1-day surge: share mined,T_R,3000.0,0.4619345456155801,144
+10× 1-day surge: share mined,T_R,10000.0,0.5662017920398177,144
+10× 1-day surge: share mined,T_R,12500.0,0.6112703824836978,144
+10× 1-day surge: share mined,T_R,20000.0,0.7349705621519631,144
+10× 1-day surge: share mined,tx weight,7650.0,0.6740268155407596,192
+10× 1-day surge: share mined,tx weight,9093.0,0.5999907607640189,192
+10× 1-day surge: share mined,tx weight,11851.0,0.5024403876416184,192
+50× 1-day surge: mean wait,Z_M,300000.0,271.5807400971629,192
+50× 1-day surge: mean wait,Z_M,625000.0,437.8058072174755,192
+50× 1-day surge: mean wait,Z_M,1000000.0,377.108538773898,192
+50× 1-day surge: mean wait,clamp,1.1,355.28264896417255,144
+50× 1-day surge: mean wait,clamp,1.2,355.28264896417255,144
+50× 1-day surge: mean wait,clamp,1.4,355.28264896417255,144
+50× 1-day surge: mean wait,clamp,1.7,355.28264896417255,144
+50× 1-day surge: mean wait,surge,4.0,425.5054420955242,144
+50× 1-day surge: mean wait,surge,8.0,372.7787671300646,144
+50× 1-day surge: mean wait,surge,16.0,337.5524763856833,144
+50× 1-day surge: mean wait,surge,50.0,297.5475362012911,144
+50× 1-day surge: mean wait,T_R,3000.0,593.2922078434597,144
+50× 1-day surge: mean wait,T_R,10000.0,375.3043011199345,144
+50× 1-day surge: mean wait,T_R,12500.0,318.5170089053044,144
+50× 1-day surge: mean wait,T_R,20000.0,224.49945173767355,144
+50× 1-day surge: mean wait,tx weight,7650.0,388.6205315263562,192
+50× 1-day surge: mean wait,tx weight,9093.0,358.54746155200246,192
+50× 1-day surge: mean wait,tx weight,11851.0,321.83897256875457,192
+50× 1-day surge: share mined,Z_M,300000.0,0.18018303632041288,192
+50× 1-day surge: share mined,Z_M,625000.0,0.10756607467511548,192
+50× 1-day surge: share mined,Z_M,1000000.0,0.12179886941976004,192
+50× 1-day surge: share mined,clamp,1.1,0.13608633685934723,144
+50× 1-day surge: share mined,clamp,1.2,0.13608633685934723,144
+50× 1-day surge: share mined,clamp,1.4,0.13608633685934723,144
+50× 1-day surge: share mined,clamp,1.7,0.13608633685934723,144
+50× 1-day surge: share mined,surge,4.0,0.11192297394461947,144
+50× 1-day surge: share mined,surge,8.0,0.1251165409992765,144
+50× 1-day surge: share mined,surge,16.0,0.142756565025288,144
+50× 1-day surge: share mined,surge,50.0,0.16525079885620242,144
+50× 1-day surge: share mined,T_R,3000.0,0.0930501923254381,144
+50× 1-day surge: share mined,T_R,10000.0,0.12182410670415145,144
+50× 1-day surge: share mined,T_R,12500.0,0.1425979255221348,144
+50× 1-day surge: share mined,T_R,20000.0,0.18901420424553872,144
+50× 1-day surge: share mined,tx weight,7650.0,0.14850416747812423,192
+50× 1-day surge: share mined,tx weight,9093.0,0.13730349058238023,192
+50× 1-day surge: share mined,tx weight,11851.0,0.12260006491109321,192
 spam at M_N 7 days: XMR,Z_M,300000.0,14.505625416598447,192
 spam at M_N 7 days: XMR,Z_M,625000.0,18.483127443497967,192
 spam at M_N 7 days: XMR,Z_M,1000000.0,17.933637071054783,192

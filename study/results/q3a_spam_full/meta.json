@@ -3,7 +3,7 @@
   "description": "Q3a: fee-paying spammer keeps blocks at M_N for 1/7/30 days; fill_to (no backlog) vs topup (keeps a block of backlog)",
   "scenario_file": "scenarios/q3a_spam_full.json",
   "scenario_text": "{\n \"name\": \"q3a_spam_full\",\n \"description\": \"Q3a: fee-paying spammer keeps blocks at M_N for 1/7/30 days; fill_to (no backlog) vs topup (keeps a block of backlog)\",\n \"series_every\": 100,\n \"series_seeds\": 2,\n \"seeds\": 8,\n \"base\": {\n  \"blocks\": 60000,\n  \"demand\": {\n   \"txs_per_block\": 38,\n   \"poisson\": true\n  },\n  \"spam\": {\n   \"start\": 5000,\n   \"level\": 0\n  }\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"v16\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 2500\n     }\n    ],\n    \"spam\": {\n     \"weight\": 2500\n    }\n   },\n   {\n    \"label\": \"v16_9093\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ],\n    \"spam\": {\n     \"weight\": 9093\n    }\n   },\n   {\n    \"label\": \"v17\",\n    \"rules\": \"v17\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ],\n    \"spam\": {\n     \"weight\": 9093\n    }\n   }\n  ],\n  [\n   {\n    \"label\": \"fill_to_L0\",\n    \"spam\": {\n     \"mode\": \"fill_to\",\n     \"target_mn\": 1.0\n    }\n   },\n   {\n    \"label\": \"topup_L0\",\n    \"spam\": {\n     \"mode\": \"topup\",\n     \"target_mn\": 1.0\n    }\n   },\n   {\n    \"label\": \"topup_auto\",\n    \"spam\": {\n     \"mode\": \"topup\",\n     \"target_mn\": 1.0,\n     \"level\": \"auto\"\n    }\n   }\n  ]\n ],\n \"grid\": {\n  \"spam.blocks\": [\n   720,\n   5040,\n   21600\n  ]\n }\n}",
-  "git_commit": "0f1166426bbb14f3a4395a8036280c7a96595ae2-dirty",
+  "git_commit": "32ac6c0a202614e292e095cff075e14e83ab6c24",
   "runs": 216,
   "failures": 0,
   "seeds": 8,
@@ -11,6 +11,6 @@
   "series_every": 100,
   "series_seeds": 2,
   "history": "",
-  "wall_seconds": 0.499338162,
+  "wall_seconds": 0.556426471,
   "threads": 12
 }

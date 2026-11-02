@@ -1,0 +1,16 @@
+{
+  "scenario": "q3e_miner_busy",
+  "description": "Q3 follow-up: can a minority miner padding its blocks to the clamp move M_L when honest demand is close to the penalty-free zone? Honest demand is a multiple of Z_M; share 0 is the no-attack baseline.",
+  "scenario_file": "scenarios/q3e_miner_busy.json",
+  "scenario_text": "{\n  \"name\": \"q3e_miner_busy\",\n  \"description\": \"Q3 follow-up: can a minority miner padding its blocks to the clamp move M_L when honest demand is close to the penalty-free zone? Honest demand is a multiple of Z_M; share 0 is the no-attack baseline.\",\n  \"seeds\": 8,\n  \"series_every\": 0,\n  \"base\": {\n    \"blocks\": 263800,\n    \"series\": false,\n    \"demand\": {\"poisson\": true},\n    \"miner_attack\": {\"start\": 1000, \"blocks\": 262800, \"target_clamp\": true}\n  },\n  \"cases\": [\n    {\"label\": \"v16\", \"rules\": \"v16\", \"tx\": [{\"weight\": 2500}]},\n    {\"label\": \"v17\", \"rules\": \"v17\", \"tx\": [{\"weight\": 9093}]}\n  ],\n  \"grid\": {\"demand.zm_mult\": [0.5, 0.8, 0.9, 0.95], \"miner_attack.share\": [0.0, 0.3, 0.45]}\n}\n",
+  "git_commit": "32ac6c0a202614e292e095cff075e14e83ab6c24",
+  "runs": 192,
+  "failures": 0,
+  "seeds": 8,
+  "seed_base": 1,
+  "series_every": 0,
+  "series_seeds": null,
+  "history": "",
+  "wall_seconds": 2.202051593,
+  "threads": 12
+}

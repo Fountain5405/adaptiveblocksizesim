@@ -1,0 +1,16 @@
+{
+  "scenario": "q2b_pool",
+  "description": "Q2 sensitivity: the same surges with monerod's pool limits (648 MB cap, 3-day expiry; the default) and with an unbounded pool, as in the first version of this study.",
+  "scenario_file": "scenarios/q2b_pool.json",
+  "scenario_text": "{\n  \"name\": \"q2b_pool\",\n  \"description\": \"Q2 sensitivity: the same surges with monerod's pool limits (648 MB cap, 3-day expiry; the default) and with an unbounded pool, as in the first version of this study.\",\n  \"seeds\": 16,\n  \"series_every\": 0,\n  \"base\": {\n    \"blocks\": 70000,\n    \"series\": false,\n    \"demand\": {\"txs_per_block\": 38, \"poisson\": true, \"surge_start\": 5000}\n  },\n  \"cases\": [\n    [\n      {\"label\": \"v16\", \"rules\": \"v16\", \"tx\": [{\"weight\": 2500}]},\n      {\"label\": \"v17\", \"rules\": \"v17\", \"tx\": [{\"weight\": 9093}]},\n      {\"label\": \"v17_sf50\", \"rules\": \"custom\", \"params\": {\"surge_factor\": 50}, \"tx\": [{\"weight\": 9093}]}\n    ],\n    [\n      {\"label\": \"monerod_pool\"},\n      {\"label\": \"unbounded_pool\", \"pool_lifetime\": null, \"pool_max_bytes\": null}\n    ]\n  ],\n  \"grid\": {\"demand.surge_mult\": [5, 10, 20, 50], \"demand.surge_blocks\": [720, 5040]}\n}\n",
+  "git_commit": "32ac6c0a202614e292e095cff075e14e83ab6c24",
+  "runs": 768,
+  "failures": 0,
+  "seeds": 16,
+  "seed_base": 1,
+  "series_every": 0,
+  "series_seeds": null,
+  "history": "",
+  "wall_seconds": 2.128948013,
+  "threads": 12
+}

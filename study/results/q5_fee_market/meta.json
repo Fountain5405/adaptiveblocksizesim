@@ -1,16 +1,16 @@
 {
   "scenario": "q5_fee_market",
-  "description": "Q5: steady demand at multiples of Z_M (Poisson), wallet fee choice",
+  "description": "Q5 equilibrium: constant Poisson demand at multiples of Z_M, run until M_L has stopped moving (800,000 blocks); columns prefixed ss_ cover the last 100,000 blocks.",
   "scenario_file": "scenarios/q5_fee_market.json",
-  "scenario_text": "{\n \"name\": \"q5_fee_market\",\n \"description\": \"Q5: steady demand at multiples of Z_M (Poisson), wallet fee choice\",\n \"series_every\": 100,\n \"series_seeds\": 2,\n \"seeds\": 16,\n \"base\": {\n  \"blocks\": 100000,\n  \"demand\": {\n   \"poisson\": true\n  }\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"v16\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 2500\n     }\n    ]\n   },\n   {\n    \"label\": \"v17\",\n    \"rules\": \"v17\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ]\n   }\n  ],\n  [\n   {\n    \"label\": \"auto\"\n   },\n   {\n    \"label\": \"auto_upm\",\n    \"users_pay_more\": true\n   },\n   {\n    \"label\": \"L0\",\n    \"fee_level\": 0\n   },\n   {\n    \"label\": \"L1\",\n    \"fee_level\": 1\n   },\n   {\n    \"label\": \"L2\",\n    \"fee_level\": 2\n   },\n   {\n    \"label\": \"L3\",\n    \"fee_level\": 3\n   },\n   {\n    \"label\": \"L4\",\n    \"fee_level\": 4\n   }\n  ]\n ],\n \"grid\": {\n  \"demand.zm_mult\": [\n   0.5,\n   0.8,\n   1.0,\n   1.2,\n   2.0,\n   5.0\n  ]\n }\n}",
-  "git_commit": "0f1166426bbb14f3a4395a8036280c7a96595ae2-dirty",
-  "runs": 1344,
+  "scenario_text": "{\n \"name\": \"q5_fee_market\",\n \"description\": \"Q5 equilibrium: constant Poisson demand at multiples of Z_M, run until M_L has stopped moving (800,000 blocks); columns prefixed ss_ cover the last 100,000 blocks.\",\n \"series_every\": 1000,\n \"series_seeds\": 2,\n \"seeds\": 8,\n \"base\": {\n  \"blocks\": 800000,\n  \"demand\": {\n   \"poisson\": true\n  },\n  \"measure_from\": 700000\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"v16\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 2500\n     }\n    ]\n   },\n   {\n    \"label\": \"v17\",\n    \"rules\": \"v17\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ]\n   }\n  ],\n  [\n   {\n    \"label\": \"auto\"\n   },\n   {\n    \"label\": \"auto_upm\",\n    \"users_pay_more\": true\n   },\n   {\n    \"label\": \"L0\",\n    \"fee_level\": 0\n   },\n   {\n    \"label\": \"L1\",\n    \"fee_level\": 1\n   },\n   {\n    \"label\": \"L2\",\n    \"fee_level\": 2\n   },\n   {\n    \"label\": \"L3\",\n    \"fee_level\": 3\n   },\n   {\n    \"label\": \"L4\",\n    \"fee_level\": 4\n   }\n  ]\n ],\n \"grid\": {\n  \"demand.zm_mult\": [\n   0.5,\n   0.8,\n   1.0,\n   1.2,\n   2.0,\n   5.0\n  ]\n }\n}",
+  "git_commit": "32ac6c0a202614e292e095cff075e14e83ab6c24",
+  "runs": 672,
   "failures": 0,
-  "seeds": 16,
+  "seeds": 8,
   "seed_base": 1,
-  "series_every": 100,
+  "series_every": 1000,
   "series_seeds": 2,
   "history": "",
-  "wall_seconds": 4.883675362,
+  "wall_seconds": 21.493955434,
   "threads": 12
 }

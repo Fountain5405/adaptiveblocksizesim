@@ -3,7 +3,7 @@
   "description": "Q6: full factorial over Z_M, clamp ratio, surge factor, T_R and tx weight (Custom rules = 2026 fee algorithm)",
   "scenario_file": "scenarios/q6_sensitivity.json",
   "scenario_text": "{\n \"name\": \"q6_sensitivity\",\n \"description\": \"Q6: full factorial over Z_M, clamp ratio, surge factor, T_R and tx weight (Custom rules = 2026 fee algorithm)\",\n \"series_every\": 0,\n \"seeds\": 1,\n \"base\": {\n  \"rules\": \"custom\",\n  \"series\": false\n },\n \"cases\": [\n  {\n   \"label\": \"growth\",\n   \"blocks\": 800000,\n   \"demand\": {\n    \"fill_mult\": 1.0\n   }\n  },\n  {\n   \"label\": \"surge10x1d\",\n   \"blocks\": 30000,\n   \"demand\": {\n    \"txs_per_block\": 38,\n    \"poisson\": true,\n    \"surge_start\": 5000,\n    \"surge_blocks\": 720,\n    \"surge_mult\": 10\n   }\n  },\n  {\n   \"label\": \"surge50x1d\",\n   \"blocks\": 30000,\n   \"demand\": {\n    \"txs_per_block\": 38,\n    \"poisson\": true,\n    \"surge_start\": 5000,\n    \"surge_blocks\": 720,\n    \"surge_mult\": 50\n   }\n  },\n  {\n   \"label\": \"spam_mn_7d\",\n   \"blocks\": 15000,\n   \"demand\": {\n    \"txs_per_block\": 38,\n    \"poisson\": true\n   },\n   \"spam\": {\n    \"start\": 1000,\n    \"blocks\": 5040,\n    \"mode\": \"fill_to\",\n    \"target_mn\": 1.0\n   }\n  },\n  {\n   \"label\": \"spam_clamp\",\n   \"blocks\": 600000,\n   \"demand\": {\n    \"txs_per_block\": 38,\n    \"poisson\": true\n   },\n   \"spam\": {\n    \"start\": 1000,\n    \"mode\": \"fill_to\",\n    \"target_mn\": 0.0,\n    \"target_clamp\": true\n   }\n  },\n  {\n   \"label\": \"miner51_clamp\",\n   \"blocks\": 600000,\n   \"demand\": {\n    \"txs_per_block\": 38,\n    \"poisson\": true\n   },\n   \"miner_attack\": {\n    \"share\": 0.51,\n    \"start\": 1000,\n    \"target_clamp\": true\n   }\n  }\n ],\n \"grid\": {\n  \"params.z_m\": [\n   300000,\n   625000,\n   1000000\n  ],\n  \"params.lt_growth\": [\n   1.1,\n   1.2,\n   1.4,\n   1.7\n  ],\n  \"params.surge_factor\": [\n   4,\n   8,\n   16,\n   50\n  ],\n  \"params.t_r\": [\n   3000,\n   10000,\n   12500,\n   20000\n  ],\n  \"tx\": [\n   [\n    {\n     \"weight\": 7650\n    }\n   ],\n   [\n    {\n     \"weight\": 9093\n    }\n   ],\n   [\n    {\n     \"weight\": 11851\n    }\n   ]\n  ]\n }\n}",
-  "git_commit": "0f1166426bbb14f3a4395a8036280c7a96595ae2-dirty",
+  "git_commit": "32ac6c0a202614e292e095cff075e14e83ab6c24",
   "runs": 3456,
   "failures": 0,
   "seeds": 1,
@@ -11,6 +11,6 @@
   "series_every": 0,
   "series_seeds": null,
   "history": "",
-  "wall_seconds": 36.610371499,
+  "wall_seconds": 42.279134772,
   "threads": 12
 }
