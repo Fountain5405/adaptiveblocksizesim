@@ -1,6 +1,7 @@
 # Study brief: Monero's block weight and fee rules, v16 vs FCMP++ (v17)
 
-You are running a research study on this machine (16 threads, 32 GB RAM). Work autonomously; the
+You are running a research study on this machine; use all its cores (`nproc`). Memory is not a
+constraint: a run keeping every per-block series takes about 75 MB per million blocks. Work autonomously; the
 study should take as long as it needs to be thorough. Report what you find faithfully, including
 results that are null, surprising, or contradict expectations.
 
