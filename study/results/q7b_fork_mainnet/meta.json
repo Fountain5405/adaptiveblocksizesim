@@ -3,7 +3,7 @@
   "description": "Q7b: fork from the real mainnet windows (last 100k blocks)",
   "scenario_file": "scenarios/q7b_fork_mainnet.json",
   "scenario_text": "{\n \"name\": \"q7b_fork_mainnet\",\n \"description\": \"Q7b: fork from the real mainnet windows (last 100k blocks)\",\n \"series_every\": 10,\n \"series_seeds\": 2,\n \"seeds\": 8,\n \"base\": {\n  \"blocks\": 202000,\n  \"rules\": \"v16\",\n  \"init\": \"mainnet\",\n  \"tx\": [\n   {\n    \"weight\": 2500\n   }\n  ],\n  \"demand\": {\n   \"txs_per_block\": 38,\n   \"poisson\": true\n  },\n  \"fork\": {\n   \"at\": 2000,\n   \"to\": \"v17\",\n   \"tx_after\": [\n    {\n     \"weight\": 9093\n    }\n   ]\n  }\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"base38\"\n   },\n   {\n    \"label\": \"x3\",\n    \"demand\": {\n     \"txs_per_block\": 114\n    }\n   },\n   {\n    \"label\": \"fill_after\",\n    \"demand\": {\n     \"fill_mult\": 1.0,\n     \"fill_from\": 2000\n    }\n   }\n  ]\n ],\n \"grid\": {\n  \"fork.rescale\": [\n   false,\n   true\n  ]\n }\n}",
-  "git_commit": "76b923494b1d3258c4dfe35fab9a572c639e8d03-dirty",
+  "git_commit": "0f1166426bbb14f3a4395a8036280c7a96595ae2-dirty",
   "runs": 48,
   "failures": 0,
   "seeds": 8,
@@ -11,6 +11,6 @@
   "series_every": 10,
   "series_seeds": 2,
   "history": "data/mainnet_weights.csv.gz",
-  "wall_seconds": 0.991393647,
+  "wall_seconds": 1.014843601,
   "threads": 12
 }
