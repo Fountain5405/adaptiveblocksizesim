@@ -24,6 +24,9 @@ pub struct Scenario {
     pub seed_base: u64,
     #[serde(default = "series_every")]
     pub series_every: u32,
+    /// Write series only for the first `series_seeds` seeds of each configuration (default: all).
+    #[serde(default)]
+    pub series_seeds: Option<u32>,
     #[serde(default)]
     pub base: Value,
     #[serde(default)]
@@ -66,6 +69,8 @@ pub struct RunSpec {
     pub snapshots: Vec<u32>,
     /// Write the downsampled series for this run.
     pub series: bool,
+    /// Drop pool transactions after this many blocks (monerod: 3 days = 2160). Default: never.
+    pub pool_lifetime: Option<u32>,
 }
 
 impl Default for RunSpec {
@@ -86,6 +91,7 @@ impl Default for RunSpec {
             init: "steady".into(),
             snapshots: Vec::new(),
             series: true,
+            pool_lifetime: None,
         }
     }
 }

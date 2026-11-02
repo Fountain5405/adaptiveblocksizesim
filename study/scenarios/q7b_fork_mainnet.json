@@ -2,7 +2,8 @@
  "name": "q7b_fork_mainnet",
  "description": "Q7b: fork from the real mainnet windows (last 100k blocks)",
  "series_every": 10,
- "seeds": 4,
+ "series_seeds": 2,
+ "seeds": 8,
  "base": {
   "blocks": 202000,
   "rules": "v16",

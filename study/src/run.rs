@@ -224,6 +224,8 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
         (o, _) => return Err(format!("unknown init {o}")),
     };
 
+    sim.pool_lifetime = spec.pool_lifetime;
+    let mut expired = [0i64; 2];
     let mut rng_demand = StudyRng::new(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ 0x1234_5678);
     let mut rng_miner = StudyRng::new(seed.wrapping_mul(0xD1B5_4A32_D192_ED03) ^ 0xABCD_EF01);
     let mut carry = vec![0.0f64; classes.len()];
@@ -250,7 +252,7 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
         (Some(p), true) => {
             let f = std::fs::File::create(p).map_err(|e| format!("{p}: {e}"))?;
             let mut g = GzEncoder::new(std::io::BufWriter::new(f), Compression::default());
-            writeln!(g, "block,m_l,m_s,m_n,max_weight,mb_mean,mb_max,penalty_sum,fees_sum,user_fees_sum,spam_fees_sum,pool_user_bytes,pool_spam_bytes,fee_low,fee_l1,fee_l2,fee_l3,fee_l4,f_min,base_level,cum_spam_xmr,cum_miner_penalty,cum_chain_bytes,user_incl_txs,user_wait_mean,blocks_over_mn").unwrap();
+            writeln!(g, "block,m_l,m_s,m_n,max_weight,mb_mean,mb_max,penalty_sum,fees_sum,user_fees_sum,spam_fees_sum,pool_user_bytes,pool_spam_bytes,fee_low,fee_l1,fee_l2,fee_l3,fee_l4,f_min,base_level,cum_spam_xmr,cum_miner_penalty,cum_chain_bytes,user_incl_txs,user_wait_mean,blocks_over_mn,cum_spam_bytes,cum_padding_bytes,cum_user_bytes").unwrap();
             Some(g)
         }
         _ => None,
@@ -479,6 +481,8 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
         total_penalty += o.penalty;
         rejected[0] += o.rejected[0];
         rejected[1] += o.rejected[1];
+        expired[0] += o.expired[0];
+        expired[1] += o.expired[1];
         if is_attacker {
             miner_blocks += 1;
             miner_pen_total += o.penalty;
@@ -627,11 +631,12 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
                 let lv = |k: usize| ctx.levels.get(k).map(|x| format!("{x:e}")).unwrap_or_default();
                 writeln!(
                     g,
-                    "{},{},{},{},{},{:.0},{},{:.6e},{:.6e},{:.6e},{:.6e},{},{},{},{},{},{},{},{:e},{},{:.9},{:.9},{},{},{},{}",
+                    "{},{},{},{},{},{:.0},{},{:.6e},{:.6e},{:.6e},{:.6e},{},{},{},{},{},{},{},{:e},{},{:.9},{:.9},{},{},{},{},{},{},{}",
                     i, ctx.m_l, ctx.m_s, ctx.m_n, ctx.m_b_max, s_mb_sum / s_k as f64, s_mb_max, s_pen, s_fees, s_ufees, s_sfees,
                     o.pool_bytes[0], o.pool_bytes[1], lv(0), lv(1), lv(2), lv(3), lv(4), ctx.f_min, o.base_level,
                     spam_spent, miner_pen_extra, chain_bytes, s_incl,
-                    if s_incl > 0 { format!("{:.2}", s_wait / s_incl as f64) } else { String::new() }, s_over
+                    if s_incl > 0 { format!("{:.2}", s_wait / s_incl as f64) } else { String::new() }, s_over,
+                    spam_bytes, pad_bytes, user_bytes
                 )
                 .map_err(|e| e.to_string())?;
                 s_mb_sum = 0.0;
@@ -703,6 +708,8 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     r.put("max_pool_user_bytes", max_pool_user);
     r.put("rejected_user_txs", rejected[0]);
     r.put("rejected_spam_txs", rejected[1]);
+    r.put("expired_user_txs", expired[0]);
+    r.put("expired_spam_txs", expired[1]);
     r.put("total_fees_xmr", format!("{total_fees:.9}"));
     r.put("total_penalty_xmr", format!("{total_penalty:.9}"));
     r.put("honest_penalty_xmr", format!("{honest_penalty:.9}"));
@@ -761,6 +768,7 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
     r.put("win_wait_max", hist_win.max);
     r.opt("win_share_within_10", hist_win.share_within(10).map(|x| format!("{x:.6}")));
     r.opt("win_share_within_720", hist_win.share_within(720).map(|x| format!("{x:.6}")));
+    r.opt("win_share_within_2160", hist_win.share_within(2160).map(|x| format!("{x:.6}")));
     r.opt("win_fee_per_tx", (win_txs > 0).then(|| format!("{:e}", win_fees / win_txs as f64)));
     r.opt("win_fee_per_byte", (win_bytes > 0).then(|| format!("{:e}", win_fees / win_bytes as f64)));
     r.put("win_level_counts", win_level_counts.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "));

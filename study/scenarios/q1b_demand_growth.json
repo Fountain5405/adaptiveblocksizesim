@@ -2,7 +2,8 @@
  "name": "q1b_demand_growth",
  "description": "Q1b: exponential demand growth from 38 tx/block; when does capacity fall behind?",
  "series_every": 1000,
- "seeds": 4,
+ "series_seeds": 2,
+ "seeds": 8,
  "base": {
   "blocks": 1314000,
   "demand": {

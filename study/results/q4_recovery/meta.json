@@ -1,0 +1,16 @@
+{
+  "scenario": "q4_recovery",
+  "description": "Q4: demand above capacity for 30/90/365 days, then back to 38 tx/block; pool transactions expire after 3 days as in monerod",
+  "scenario_file": "scenarios/q4_recovery.json",
+  "scenario_text": "{\n \"name\": \"q4_recovery\",\n \"description\": \"Q4: demand above capacity for 30/90/365 days, then back to 38 tx/block; pool transactions expire after 3 days as in monerod\",\n \"series_every\": 200,\n \"series_seeds\": 2,\n \"seeds\": 8,\n \"base\": {\n  \"blocks\": 562800,\n  \"demand\": {\n   \"txs_per_block\": 38,\n   \"poisson\": true,\n   \"fill_mult\": 1.0\n  },\n  \"pool_lifetime\": 2160\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"v16\",\n    \"rules\": \"v16\",\n    \"tx\": [\n     {\n      \"weight\": 2500\n     }\n    ]\n   },\n   {\n    \"label\": \"v17\",\n    \"rules\": \"v17\",\n    \"tx\": [\n     {\n      \"weight\": 9093\n     }\n    ]\n   }\n  ],\n  [\n   {\n    \"label\": \"fill\",\n    \"rational_miners\": false\n   },\n   {\n    \"label\": \"auto\"\n   }\n  ]\n ],\n \"grid\": {\n  \"demand.fill_until\": [\n   21600,\n   64800,\n   262800\n  ]\n }\n}",
+  "git_commit": "76b923494b1d3258c4dfe35fab9a572c639e8d03-dirty",
+  "runs": 96,
+  "failures": 0,
+  "seeds": 8,
+  "seed_base": 1,
+  "series_every": 200,
+  "series_seeds": 2,
+  "history": "",
+  "wall_seconds": 1.832265504,
+  "threads": 12
+}

@@ -2,6 +2,7 @@
  "name": "q3b_spam_growth",
  "description": "Q3b/c: spammer raising M_L and adding bytes, 2 years of attack then 1 year of recovery",
  "series_every": 500,
+ "series_seeds": 2,
  "seeds": 4,
  "base": {
   "blocks": 788400,

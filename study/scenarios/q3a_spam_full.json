@@ -2,7 +2,8 @@
  "name": "q3a_spam_full",
  "description": "Q3a: fee-paying spammer keeps blocks at M_N for 1/7/30 days; fill_to (no backlog) vs topup (keeps a block of backlog)",
  "series_every": 100,
- "seeds": 4,
+ "series_seeds": 2,
+ "seeds": 8,
  "base": {
   "blocks": 60000,
   "demand": {

@@ -2,7 +2,8 @@
  "name": "q5_fee_market",
  "description": "Q5: steady demand at multiples of Z_M (Poisson), wallet fee choice",
  "series_every": 100,
- "seeds": 8,
+ "series_seeds": 2,
+ "seeds": 16,
  "base": {
   "blocks": 100000,
   "demand": {

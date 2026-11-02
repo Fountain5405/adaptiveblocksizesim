@@ -1,0 +1,197 @@
+metric,param,value,mean of metric,n
+blocks to 10 MB max weight,Z_M,300000.0,41640.86740771854,192
+blocks to 10 MB max weight,Z_M,625000.0,5239.352263158667,192
+blocks to 10 MB max weight,Z_M,1000000.0,5546.366350928567,192
+blocks to 10 MB max weight,clamp,1.1,13627.849451446225,144
+blocks to 10 MB max weight,clamp,1.2,11349.239329897866,144
+blocks to 10 MB max weight,clamp,1.4,9645.966422090347,144
+blocks to 10 MB max weight,clamp,1.7,8644.33291896581,144
+blocks to 10 MB max weight,surge,4.0,168495.66999912827,144
+blocks to 10 MB max weight,surge,8.0,8956.917904441138,144
+blocks to 10 MB max weight,surge,16.0,5672.218203269793,144
+blocks to 10 MB max weight,surge,50.0,1505.637643533037,144
+blocks to 10 MB max weight,T_R,3000.0,19626.22984511668,144
+blocks to 10 MB max weight,T_R,10000.0,10242.833966334318,144
+blocks to 10 MB max weight,T_R,12500.0,9128.725138598282,144
+blocks to 10 MB max weight,T_R,20000.0,7027.416026110709,144
+blocks to 10 MB max weight,tx weight,7650.0,10701.826172698673,192
+blocks to 10 MB max weight,tx weight,9093.0,10682.909852903093,192
+blocks to 10 MB max weight,tx weight,11851.0,10585.413168139317,192
+blocks to 2× M_L,Z_M,300000.0,186210.38578494618,192
+blocks to 2× M_L,Z_M,625000.0,186321.55483322835,192
+blocks to 2× M_L,Z_M,1000000.0,186440.1673491837,192
+blocks to 2× M_L,clamp,1.1,400032.1368644471,144
+blocks to 2× M_L,clamp,1.2,200257.7046125465,144
+blocks to 2× M_L,clamp,1.4,150023.6349721832,144
+blocks to 2× M_L,clamp,1.7,100283.70143116463,144
+blocks to 2× M_L,surge,4.0,186324.01236671707,144
+blocks to 2× M_L,surge,8.0,186324.01236671707,144
+blocks to 2× M_L,surge,16.0,186324.01236671707,144
+blocks to 2× M_L,surge,50.0,186324.01236671707,144
+blocks to 2× M_L,T_R,3000.0,186563.38767959792,144
+blocks to 2× M_L,T_R,10000.0,186288.37490551526,144
+blocks to 2× M_L,T_R,12500.0,186249.8985983891,144
+blocks to 2× M_L,T_R,20000.0,186194.6050283581,144
+blocks to 2× M_L,tx weight,7650.0,186342.2131486033,192
+blocks to 2× M_L,tx weight,9093.0,186323.1065022749,192
+blocks to 2× M_L,tx weight,11851.0,186306.71914293105,192
+10× 1-day surge: mean wait,Z_M,300000.0,382.5712534305729,192
+10× 1-day surge: mean wait,Z_M,625000.0,616.744952049983,192
+10× 1-day surge: mean wait,Z_M,1000000.0,533.156794694126,192
+10× 1-day surge: mean wait,clamp,1.1,501.08202252588416,144
+10× 1-day surge: mean wait,clamp,1.2,501.08202252588416,144
+10× 1-day surge: mean wait,clamp,1.4,501.08202252588416,144
+10× 1-day surge: mean wait,clamp,1.7,501.08202252588416,144
+10× 1-day surge: mean wait,surge,4.0,640.4531046279309,144
+10× 1-day surge: mean wait,surge,8.0,500.8761546246955,144
+10× 1-day surge: mean wait,surge,16.0,447.3878965317134,144
+10× 1-day surge: mean wait,surge,50.0,439.2337470020149,144
+10× 1-day surge: mean wait,T_R,3000.0,1025.439395381804,144
+10× 1-day surge: mean wait,T_R,10000.0,528.7199162291522,144
+10× 1-day surge: mean wait,T_R,12500.0,437.04909139575375,144
+10× 1-day surge: mean wait,T_R,20000.0,265.80642750194426,144
+10× 1-day surge: mean wait,tx weight,7650.0,455.6744854094054,192
+10× 1-day surge: mean wait,tx weight,9093.0,496.7417129162372,192
+10× 1-day surge: mean wait,tx weight,11851.0,555.8179511941948,192
+10× 1-day surge: clear time,Z_M,300000.0,136.95498610356177,192
+10× 1-day surge: clear time,Z_M,625000.0,753.2118487711775,192
+10× 1-day surge: clear time,Z_M,1000000.0,897.5694626033747,192
+10× 1-day surge: clear time,clamp,1.1,452.86581107999564,144
+10× 1-day surge: clear time,clamp,1.2,452.86581107999564,144
+10× 1-day surge: clear time,clamp,1.4,452.86581107999564,144
+10× 1-day surge: clear time,clamp,1.7,452.86581107999564,144
+10× 1-day surge: clear time,surge,4.0,1156.9345008223834,144
+10× 1-day surge: clear time,surge,8.0,624.5765983258347,144
+10× 1-day surge: clear time,surge,16.0,273.5242968736856,144
+10× 1-day surge: clear time,surge,50.0,212.38535082877374,144
+10× 1-day surge: clear time,T_R,3000.0,2051.46043878753,144
+10× 1-day surge: clear time,T_R,10000.0,562.7705231752016,144
+10× 1-day surge: clear time,T_R,12500.0,314.43045706364813,144
+10× 1-day surge: clear time,T_R,20000.0,115.25967170237976,144
+10× 1-day surge: clear time,tx weight,7650.0,442.07471812781904,192
+10× 1-day surge: clear time,tx weight,9093.0,448.7851929674725,192
+10× 1-day surge: clear time,tx weight,11851.0,468.1376454680587,192
+50× 1-day surge: mean wait,Z_M,300000.0,1433.6852128123949,192
+50× 1-day surge: mean wait,Z_M,625000.0,1678.7063286012879,192
+50× 1-day surge: mean wait,Z_M,1000000.0,1842.2967011913117,192
+50× 1-day surge: mean wait,clamp,1.1,1642.8483200388796,144
+50× 1-day surge: mean wait,clamp,1.2,1642.8483200388796,144
+50× 1-day surge: mean wait,clamp,1.4,1642.8483200388796,144
+50× 1-day surge: mean wait,clamp,1.7,1642.8483200388796,144
+50× 1-day surge: mean wait,surge,4.0,2895.1524130266407,144
+50× 1-day surge: mean wait,surge,8.0,1813.2221527019733,144
+50× 1-day surge: mean wait,surge,16.0,1325.1733614171212,144
+50× 1-day surge: mean wait,surge,50.0,1046.9360712896116,144
+50× 1-day surge: mean wait,T_R,3000.0,3367.996315187326,144
+50× 1-day surge: mean wait,T_R,10000.0,1605.875411155925,144
+50× 1-day surge: mean wait,T_R,12500.0,1380.4452592824364,144
+50× 1-day surge: mean wait,T_R,20000.0,975.4062420472765,144
+50× 1-day surge: mean wait,tx weight,7650.0,1508.9637574675824,192
+50× 1-day surge: mean wait,tx weight,9093.0,1617.3044835779608,192
+50× 1-day surge: mean wait,tx weight,11851.0,1816.8517630158276,192
+50× 1-day surge: clear time,Z_M,300000.0,2148.2127661681598,192
+50× 1-day surge: clear time,Z_M,625000.0,2204.4505810772007,192
+50× 1-day surge: clear time,Z_M,1000000.0,2512.007323846465,192
+50× 1-day surge: clear time,clamp,1.1,2282.793498095679,144
+50× 1-day surge: clear time,clamp,1.2,2282.793498095679,144
+50× 1-day surge: clear time,clamp,1.4,2282.793498095679,144
+50× 1-day surge: clear time,clamp,1.7,2282.793498095679,144
+50× 1-day surge: clear time,surge,4.0,5955.335084302688,144
+50× 1-day surge: clear time,surge,8.0,2905.839139598541,144
+50× 1-day surge: clear time,surge,16.0,1677.6290499817749,144
+50× 1-day surge: clear time,surge,50.0,934.9927249302717,144
+50× 1-day surge: clear time,T_R,3000.0,5353.295170273271,144
+50× 1-day surge: clear time,T_R,10000.0,2233.4162690749586,144
+50× 1-day surge: clear time,T_R,12500.0,1873.0268251856369,144
+50× 1-day surge: clear time,T_R,20000.0,1212.3473097799854,144
+50× 1-day surge: clear time,tx weight,7650.0,2009.3934862607462,192
+50× 1-day surge: clear time,tx weight,9093.0,2224.299536510909,192
+50× 1-day surge: clear time,tx weight,11851.0,2661.569486771378,192
+spam at M_N 7 days: XMR,Z_M,300000.0,14.505625416598447,192
+spam at M_N 7 days: XMR,Z_M,625000.0,18.483127443497967,192
+spam at M_N 7 days: XMR,Z_M,1000000.0,17.933637071054783,192
+spam at M_N 7 days: XMR,clamp,1.1,16.883835612187163,144
+spam at M_N 7 days: XMR,clamp,1.2,16.883835612187163,144
+spam at M_N 7 days: XMR,clamp,1.4,16.883835612187163,144
+spam at M_N 7 days: XMR,clamp,1.7,16.883835612187163,144
+spam at M_N 7 days: XMR,surge,4.0,16.883835612187163,144
+spam at M_N 7 days: XMR,surge,8.0,16.883835612187163,144
+spam at M_N 7 days: XMR,surge,16.0,16.883835612187163,144
+spam at M_N 7 days: XMR,surge,50.0,16.883835612187163,144
+spam at M_N 7 days: XMR,T_R,3000.0,6.128607145000575,144
+spam at M_N 7 days: XMR,T_R,10000.0,17.582635860763144,144
+spam at M_N 7 days: XMR,T_R,12500.0,21.58832653629848,144
+spam at M_N 7 days: XMR,T_R,20000.0,33.185868777278586,144
+spam at M_N 7 days: XMR,tx weight,7650.0,17.661844062722942,192
+spam at M_N 7 days: XMR,tx weight,9093.0,16.972609413595894,192
+spam at M_N 7 days: XMR,tx weight,11851.0,16.053609542793204,192
+spam to 2× M_L: XMR,Z_M,300000.0,1379.480061520809,136
+spam to 2× M_L: XMR,Z_M,625000.0,1701.546462295992,128
+spam to 2× M_L: XMR,Z_M,1000000.0,1265.8066218014753,128
+spam to 2× M_L: XMR,clamp,1.1,2146.399620841625,96
+spam to 2× M_L: XMR,clamp,1.2,1294.7546866772602,96
+spam to 2× M_L: XMR,clamp,1.4,1264.875097245678,100
+spam to 2× M_L: XMR,clamp,1.7,1225.500694963708,100
+spam to 2× M_L: XMR,surge,4.0,1436.4105862481053,98
+spam to 2× M_L: XMR,surge,8.0,1436.4105862481053,98
+spam to 2× M_L: XMR,surge,16.0,1436.4105862481053,98
+spam to 2× M_L: XMR,surge,50.0,1436.4105862481053,98
+spam to 2× M_L: XMR,T_R,10000.0,1096.2907571760168,104
+spam to 2× M_L: XMR,T_R,12500.0,1250.929317423643,144
+spam to 2× M_L: XMR,T_R,20000.0,2004.7140145676174,144
+spam to 2× M_L: XMR,tx weight,7650.0,1679.6736417157292,144
+spam to 2× M_L: XMR,tx weight,9093.0,1440.6629662846728,144
+spam to 2× M_L: XMR,tx weight,11851.0,1151.883957492624,104
+spam to 2× M_L: blocks,Z_M,300000.0,182373.61665784,136
+spam to 2× M_L: blocks,Z_M,625000.0,187840.61166339664,128
+spam to 2× M_L: blocks,Z_M,1000000.0,188145.99073490498,128
+spam to 2× M_L: blocks,clamp,1.1,401625.10387024336,96
+spam to 2× M_L: blocks,clamp,1.2,201685.07934166244,96
+spam to 2× M_L: blocks,clamp,1.4,150847.26914272073,100
+spam to 2× M_L: blocks,clamp,1.7,101395.58433660812,100
+spam to 2× M_L: blocks,surge,4.0,186024.22408345153,98
+spam to 2× M_L: blocks,surge,8.0,186024.22408345153,98
+spam to 2× M_L: blocks,surge,16.0,186024.22408345153,98
+spam to 2× M_L: blocks,surge,50.0,186024.22408345153,98
+spam to 2× M_L: blocks,T_R,10000.0,181695.72739015907,104
+spam to 2× M_L: blocks,T_R,12500.0,187699.28916297664,144
+spam to 2× M_L: blocks,T_R,20000.0,187525.76388112156,144
+spam to 2× M_L: blocks,tx weight,7650.0,187771.0741599318,144
+spam to 2× M_L: blocks,tx weight,9093.0,187526.62959349641,144
+spam to 2× M_L: blocks,tx weight,11851.0,181598.3949615334,104
+51% miner to 2× M_L: XMR,Z_M,300000.0,1588.85016317961,160
+51% miner to 2× M_L: XMR,Z_M,625000.0,5493.100528713158,144
+51% miner to 2× M_L: XMR,Z_M,1000000.0,5688.866659315603,144
+51% miner to 2× M_L: XMR,clamp,1.1,130.99131282565557,16
+51% miner to 2× M_L: XMR,clamp,1.2,1473.233909487338,144
+51% miner to 2× M_L: XMR,clamp,1.4,4776.031398034887,144
+51% miner to 2× M_L: XMR,clamp,1.7,9304.088079211737,144
+51% miner to 2× M_L: XMR,surge,4.0,3567.192043522981,112
+51% miner to 2× M_L: XMR,surge,8.0,3567.192043522981,112
+51% miner to 2× M_L: XMR,surge,16.0,3567.192043522981,112
+51% miner to 2× M_L: XMR,surge,50.0,3567.192043522981,112
+51% miner to 2× M_L: XMR,T_R,3000.0,3600.4130770964953,112
+51% miner to 2× M_L: XMR,T_R,10000.0,3564.4657480577416,112
+51% miner to 2× M_L: XMR,T_R,12500.0,3557.34581740637,112
+51% miner to 2× M_L: XMR,T_R,20000.0,3546.770541951355,112
+51% miner to 2× M_L: XMR,tx weight,7650.0,4878.409399197685,144
+51% miner to 2× M_L: XMR,tx weight,9093.0,4305.904991529711,144
+51% miner to 2× M_L: XMR,tx weight,11851.0,2271.8758930543536,160
+51% miner to 2× M_L: blocks,Z_M,300000.0,258346.97670703375,160
+51% miner to 2× M_L: blocks,Z_M,625000.0,283054.02231792157,144
+51% miner to 2× M_L: blocks,Z_M,1000000.0,283129.4928043097,144
+51% miner to 2× M_L: blocks,clamp,1.1,538286.6672729607,16
+51% miner to 2× M_L: blocks,clamp,1.2,372895.91306686046,144
+51% miner to 2× M_L: blocks,clamp,1.4,275161.0193829166,144
+51% miner to 2× M_L: blocks,clamp,1.7,185977.1980928123,144
+51% miner to 2× M_L: blocks,surge,4.0,273993.42276138737,112
+51% miner to 2× M_L: blocks,surge,8.0,273993.42276138737,112
+51% miner to 2× M_L: blocks,surge,16.0,273993.42276138737,112
+51% miner to 2× M_L: blocks,surge,50.0,273993.42276138737,112
+51% miner to 2× M_L: blocks,T_R,3000.0,273802.8636549553,112
+51% miner to 2× M_L: blocks,T_R,10000.0,273980.3049188378,112
+51% miner to 2× M_L: blocks,T_R,12500.0,274036.69203291606,112
+51% miner to 2× M_L: blocks,T_R,20000.0,274153.9474701561,112
+51% miner to 2× M_L: blocks,tx weight,7650.0,278398.05460685637,144
+51% miner to 2× M_L: blocks,tx weight,9093.0,269048.63433551206,144
+51% miner to 2× M_L: blocks,tx weight,11851.0,274552.3059768188,160

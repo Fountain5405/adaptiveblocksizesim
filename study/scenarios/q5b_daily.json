@@ -2,6 +2,7 @@
  "name": "q5b_daily",
  "description": "Q5b: daily demand cycle around Z_M",
  "series_every": 20,
+ "series_seeds": 2,
  "seeds": 8,
  "base": {
   "blocks": 30000,

@@ -1,0 +1,16 @@
+{
+  "scenario": "q7_fork",
+  "description": "Q7: v16 -> v17 at block 2000 with pre-fork M_L at 300k..2M; reference code (no rescale) vs spec transitional rule",
+  "scenario_file": "scenarios/q7_fork.json",
+  "scenario_text": "{\n \"name\": \"q7_fork\",\n \"description\": \"Q7: v16 -> v17 at block 2000 with pre-fork M_L at 300k..2M; reference code (no rescale) vs spec transitional rule\",\n \"series_every\": 10,\n \"base\": {\n  \"blocks\": 202000,\n  \"rules\": \"v16\",\n  \"tx\": [\n   {\n    \"weight\": 2500\n   }\n  ],\n  \"fork\": {\n   \"at\": 2000,\n   \"to\": \"v17\",\n   \"tx_after\": [\n    {\n     \"weight\": 9093\n    }\n   ]\n  }\n },\n \"cases\": [\n  [\n   {\n    \"label\": \"ML300k_same_txs\",\n    \"params\": {\n     \"initial_weight\": 300000\n    },\n    \"demand\": {\n     \"txs_per_block\": 120.0\n    }\n   },\n   {\n    \"label\": \"ML300k_base38\",\n    \"params\": {\n     \"initial_weight\": 300000\n    },\n    \"demand\": {\n     \"txs_per_block\": 38\n    }\n   },\n   {\n    \"label\": \"ML450k_same_txs\",\n    \"params\": {\n     \"initial_weight\": 450000\n    },\n    \"demand\": {\n     \"txs_per_block\": 180.0\n    }\n   },\n   {\n    \"label\": \"ML450k_base38\",\n    \"params\": {\n     \"initial_weight\": 450000\n    },\n    \"demand\": {\n     \"txs_per_block\": 38\n    }\n   },\n   {\n    \"label\": \"ML600k_same_txs\",\n    \"params\": {\n     \"initial_weight\": 600000\n    },\n    \"demand\": {\n     \"txs_per_block\": 240.0\n    }\n   },\n   {\n    \"label\": \"ML600k_base38\",\n    \"params\": {\n     \"initial_weight\": 600000\n    },\n    \"demand\": {\n     \"txs_per_block\": 38\n    }\n   },\n   {\n    \"label\": \"ML1000k_same_txs\",\n    \"params\": {\n     \"initial_weight\": 1000000\n    },\n    \"demand\": {\n     \"txs_per_block\": 400.0\n    }\n   },\n   {\n    \"label\": \"ML1000k_base38\",\n    \"params\": {\n     \"initial_weight\": 1000000\n    },\n    \"demand\": {\n     \"txs_per_block\": 38\n    }\n   },\n   {\n    \"label\": \"ML2000k_same_txs\",\n    \"params\": {\n     \"initial_weight\": 2000000\n    },\n    \"demand\": {\n     \"txs_per_block\": 800.0\n    }\n   },\n   {\n    \"label\": \"ML2000k_base38\",\n    \"params\": {\n     \"initial_weight\": 2000000\n    },\n    \"demand\": {\n     \"txs_per_block\": 38\n    }\n   }\n  ],\n  [\n   {\n    \"label\": \"auto\"\n   },\n   {\n    \"label\": \"fill_after\",\n    \"rational_miners\": true,\n    \"demand\": {\n     \"fill_mult\": 1.0,\n     \"fill_from\": 2000\n    }\n   }\n  ]\n ],\n \"grid\": {\n  \"fork.rescale\": [\n   false,\n   true\n  ]\n }\n}",
+  "git_commit": "76b923494b1d3258c4dfe35fab9a572c639e8d03-dirty",
+  "runs": 40,
+  "failures": 0,
+  "seeds": 1,
+  "seed_base": 1,
+  "series_every": 10,
+  "series_seeds": null,
+  "history": "",
+  "wall_seconds": 1.358242446,
+  "threads": 12
+}

@@ -1,8 +1,9 @@
 {
  "name": "q2_surge",
  "description": "Q2: demand surges from 38 tx/block (Poisson)",
- "series_every": 20,
- "seeds": 8,
+ "series_every": 50,
+ "series_seeds": 2,
+ "seeds": 16,
  "base": {
   "blocks": 70000,
   "demand": {
@@ -19,6 +20,15 @@
     "tx": [
      {
       "weight": 2500
+     }
+    ]
+   },
+   {
+    "label": "v16_9093",
+    "rules": "v16",
+    "tx": [
+     {
+      "weight": 9093
      }
     ]
    },

@@ -13,7 +13,8 @@
 //!  - transactions owned by a spam attacker, tracked separately;
 //!  - a block may be padded by its miner with zero-fee filler (malicious miner);
 //!  - the rule set can be switched between blocks, optionally rescaling pre-fork weights;
-//!  - the median windows can be initialised from a real chain history.
+//!  - the median windows can be initialised from a real chain history;
+//!  - pool transactions can expire after `pool_lifetime` blocks (monerod drops them after 3 days).
 //!
 //! With one transaction class and the legacy demand, `run_legacy` reproduces
 //! `run_simulation_core` exactly (tests at the bottom).
@@ -133,6 +134,8 @@ pub struct BlockOutcome {
     pub broadcast_count: i64,
     pub broadcast_bytes: i64,
     pub rejected: [i64; 2],
+    /// Transactions dropped from the pool this block because they were too old.
+    pub expired: [i64; 2],
     pub pool_bytes: [i64; 2],
 }
 
@@ -150,6 +153,8 @@ pub struct Sim {
     ctx: Option<BlockContext>,
     /// Inclusions of the last finished block.
     pub inclusions: Vec<Inclusion>,
+    /// Drop pool transactions once they are this many blocks old (None: never, as in the core).
+    pub pool_lifetime: Option<u32>,
 }
 
 impl Sim {
@@ -173,6 +178,7 @@ impl Sim {
             height: 0,
             ctx: None,
             inclusions: Vec::new(),
+            pool_lifetime: None,
         }
     }
 
@@ -297,6 +303,23 @@ impl Sim {
         let mut out = BlockOutcome::default();
         self.inclusions.clear();
 
+        let now = self.height;
+        if let Some(life) = self.pool_lifetime {
+            for lvl in self.pool.iter_mut() {
+                for q in lvl.iter_mut() {
+                    while let Some(e) = q.fifo.front() {
+                        if e.arrival + life > now {
+                            break;
+                        }
+                        q.total -= e.count;
+                        q.by_owner[e.owner as usize] -= e.count;
+                        out.expired[e.owner as usize] += e.count;
+                        q.fifo.pop_front();
+                    }
+                }
+            }
+        }
+
         // 3. New transactions
         let pool_bytes_all: i64 = self.pool_bytes().iter().sum();
         let base_level = choose_fee_level(&c, levels, &[pool_bytes_all], 1, ctx.m_n, &self.last10);
@@ -318,7 +341,6 @@ impl Sim {
                 broadcast[j][base_level] -= moved;
             }
         }
-        let now = self.height;
         for j in 0..nc {
             let t = self.classes[j];
             for k in 0..nl {
@@ -658,6 +680,22 @@ mod tests {
         assert_eq!(o.padding, ctx.m_n + 100_000 - 30 * 9093);
         assert!(o.penalty > 0.0 && o.penalty_unpadded == 0.0);
         assert!(o.fees_by_owner[1] > 0.0);
+    }
+
+    #[test]
+    fn pool_lifetime_drops_old_transactions() {
+        let c = SimulationConfig::preset(RULES_V17);
+        let mut s = Sim::new(c, &[9093]);
+        s.pool_lifetime = Some(5);
+        let mut expired = 0;
+        for i in 0..20 {
+            let _ = s.begin_block();
+            // 200 txs per block: far more than fits, so a backlog builds and ages out
+            let o = s.finish_block(&[200], &[], Miner::Honest);
+            expired += o.expired[0];
+            assert!(s.oldest_pending(OWNER_USER).map_or(true, |a| i - a < 5));
+        }
+        assert!(expired > 0);
     }
 
     #[test]

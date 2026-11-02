@@ -102,7 +102,8 @@ fn main() {
         .map(|r| {
             let t0 = Instant::now();
             let sp = format!("{dir}/series/{:05}.csv.gz", r.id);
-            let out = run::run(&r.spec, r.id, r.seed, scen.series_every, Some(&sp), history.as_ref());
+            let want = scen.series_seeds.map_or(true, |k| r.seed_index < k);
+            let out = run::run(&r.spec, r.id, r.seed, scen.series_every, want.then_some(sp.as_str()), history.as_ref());
             let k = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
             eprint!("\r  {k}/{}", runs.len());
             (r.id, out, t0.elapsed().as_secs_f64())
@@ -165,6 +166,7 @@ fn main() {
         "seeds": scen.seeds,
         "seed_base": scen.seed_base,
         "series_every": scen.series_every,
+        "series_seeds": scen.series_seeds,
         "history": if needs_history { std::env::var("STUDY_HISTORY").unwrap_or_else(|_| "data/mainnet_weights.csv.gz".into()) } else { String::new() },
         "wall_seconds": started.elapsed().as_secs_f64(),
         "threads": rayon::current_num_threads(),

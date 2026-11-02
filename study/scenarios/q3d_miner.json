@@ -2,7 +2,8 @@
  "name": "q3d_miner",
  "description": "Q3d: malicious miner with hashrate share h padding its blocks with zero-fee filler",
  "series_every": 500,
- "seeds": 8,
+ "series_seeds": 2,
+ "seeds": 16,
  "base": {
   "blocks": 526600,
   "demand": {

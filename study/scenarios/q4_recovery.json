@@ -1,15 +1,17 @@
 {
  "name": "q4_recovery",
- "description": "Q4: demand above capacity for 30/90/365 days, then back to 38 tx/block",
+ "description": "Q4: demand above capacity for 30/90/365 days, then back to 38 tx/block; pool transactions expire after 3 days as in monerod",
  "series_every": 200,
- "seeds": 4,
+ "series_seeds": 2,
+ "seeds": 8,
  "base": {
   "blocks": 562800,
   "demand": {
    "txs_per_block": 38,
    "poisson": true,
    "fill_mult": 1.0
-  }
+  },
+  "pool_lifetime": 2160
  },
  "cases": [
   [
