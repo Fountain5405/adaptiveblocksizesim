@@ -891,15 +891,16 @@ def q7():
     out.append(md(pd.DataFrame(rows), {"M_L end (kB)": "{:,.0f}", "max M_N (MB)": "{:.3g}", "fee/tx (XMR)": "{:.3e}", "chain GB": "{:,.1f}", "t M_L 2× (days)": "{:,.1f}"}))
     eb = events("q7b_fork_mainnet").merge(b[["run_id", "demand", "variant", "seed"]], on="run_id")
     eb = eb[eb.event.str.startswith("fork_plus")]
-    piv = eb.pivot_table(index=["demand", "seed", "event"], columns="variant", values=["m_l", "m_n"], aggfunc="first")
+    piv = eb.pivot_table(index=["demand", "seed", "event"], columns="variant", values=["m_l", "m_n", "fee_low"], aggfunc="first")
     rows = []
     for (c, ev), g in piv.groupby(level=["demand", "event"]):
         row = {"post-fork demand": c, "when": ev.replace("fork_", "")}
         for var in ["spec", "spec_reclamped"]:
-            rl = g[("m_l", var)] / g[("m_l", "ref")]
-            rn = g[("m_n", var)] / g[("m_n", "ref")]
-            row[f"M_L {var} ÷ ref (min–max)"] = f"{rl.min():.4f}–{rl.max():.4f}"
-            row[f"M_N {var} ÷ ref (min–max)"] = f"{rn.min():.4f}–{rn.max():.4f}"
+            for col, nm in [("m_l", "M_L"), ("m_n", "M_N"), ("fee_low", "f_L")]:
+                ratio = g[(col, var)] / g[(col, "ref")]
+                row[f"{nm} {var} ÷ ref (min–max)"] = f"{ratio.min():.4f}–{ratio.max():.4f}"
+                if c == "fill_after" and var == "spec" and ev in ("fork_plus_50000", "fork_plus_100000"):
+                    key("Q7", f"mainnet fill_after, spec ÷ ref at {ev.replace('fork_', '')}: {nm}", f"{ratio.min():.4f}–{ratio.max():.4f}")
         rows.append(row)
     order = {f"plus_{k}": i for i, k in enumerate([100, 1000, 10000, 50000, 100000])}
     rt = pd.DataFrame(rows)
