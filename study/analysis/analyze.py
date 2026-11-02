@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.ticker import NullLocator
+from matplotlib.ticker import FuncFormatter, LogLocator, NullLocator
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -200,7 +200,7 @@ def q1():
             ax.axhline(y, color=INK2, lw=0.6, ls="-", alpha=0.4)
     axes[0].set_ylabel("bytes")
     axes[0].legend(ncol=2, fontsize=8)
-    fig.suptitle("Q1: growth with demand permanently above capacity (fill = miners ignore fees; auto/L0 = rational miners)", x=0.01, ha="left", fontsize=10)
+    fig.suptitle("Q1: growth with demand permanently above capacity (fill = miners ignore fees; auto/L0 = rational miners)", x=0.01, y=1.03, ha="left", fontsize=10)
     savefig(fig, "q1_growth.png")
 
     fig, ax = plt.subplots(figsize=(6.5, 3.6))
@@ -364,7 +364,7 @@ def q2():
     axes[0, 0].set_ylabel("mean wait of mined\nsurge txs, blocks")
     axes[1, 0].set_ylabel("share of surge txs\nmined within 1 day")
     axes[0, 0].legend(fontsize=8)
-    fig.suptitle(f"Q2: demand surges, wallets on auto priority, monerod pool limits ({ns} seeds)", x=0.01, ha="left")
+    fig.suptitle(f"Q2: demand surges, wallets on auto priority, monerod pool limits ({ns} seeds)", x=0.01, y=1.03, ha="left")
     savefig(fig, "q2_surge_wait.png")
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.4), sharey=True)
@@ -399,7 +399,7 @@ def q2():
         ax.set_title(ttl, loc="left")
         ax.set_xlabel("days since surge start")
     axes[0].legend(fontsize=8)
-    fig.suptitle("Q2: a 20× surge lasting one day (shaded), auto priority, first seed", x=0.01, ha="left")
+    fig.suptitle("Q2: a 20× surge lasting one day (shaded), auto priority, first seed", x=0.01, y=1.03, ha="left")
     savefig(fig, "q2_surge_example.png")
 
 
@@ -502,10 +502,13 @@ def q3():
         axes[1].plot(ss.cum_spam_bytes / 1e9, ss.cum_spam_xmr, ls=ls, color=C[r], label=f"{r} {s}")
     axes[0].set_xscale("symlog", linthresh=10); axes[0].set_xlabel("XMR spent by the spammer"); axes[0].set_ylabel("M_L / initial M_L")
     axes[0].set_yscale("log"); axes[0].set_title("M_L raised vs XMR spent", loc="left")
+    for ax in axes:
+        lo, hi = ax.get_ylim()
+        ax.set_ylim(lo, hi * 1.6)
     axes[1].set_xscale("log"); axes[1].set_yscale("log"); axes[1].set_xlabel("GB of spam in the chain"); axes[1].set_ylabel("cumulative XMR spent")
     axes[1].set_title("Bloat: XMR spent vs GB added", loc="left")
     axes[0].legend(fontsize=7, ncol=1)
-    fig.suptitle("Q3: fee-paying spammer, 2-year campaigns (first seed)", x=0.01, ha="left")
+    fig.suptitle("Q3: fee-paying spammer, 2-year campaigns (first seed)", x=0.01, y=1.03, ha="left")
     savefig(fig, "q3_spam.png")
 
     m = load("q3d_miner")
@@ -565,8 +568,8 @@ def q3():
     axes[0].axvline(0.5, color=INK2, lw=0.8, alpha=0.5)
     axes[1].axvline(0.5, color=INK2, lw=0.8, alpha=0.5)
     axes[0].legend(fontsize=8)
-    axes[1].text(0.02, 0.02, "pad_max: v16 and v17 overlap (each padded block forfeits the 0.6 XMR reward)", transform=axes[1].transAxes, fontsize=7, color=INK2)
-    fig.suptitle(f"Q3d: malicious miner padding its blocks for one year ({nseeds(m)} seeds)", x=0.01, ha="left")
+    fig.text(0.01, -0.04, "pad_max: v16 and v17 overlap (each padded block forfeits the 0.6 XMR reward)", fontsize=7, color=INK2)
+    fig.suptitle(f"Q3d: malicious miner padding its blocks for one year ({nseeds(m)} seeds)", x=0.01, y=1.03, ha="left")
     savefig(fig, "q3_miner.png")
 
 
@@ -621,8 +624,10 @@ def q4():
             axes[2].plot(t[k], s.fee_low[k] / s.fee_low.iloc[0], ls=ls, color=C[r], label=lab)
     for ax, ttl in zip(axes, ["M_L ÷ before", "M_N ÷ before", "lowest fee level ÷ before"]):
         ax.set_yscale("log"); ax.set_title(ttl, loc="left"); ax.set_xlabel("months after demand returns to 38 tx/block")
+        lo, hi = ax.get_ylim()
+        ax.set_ylim(lo / 1.3, hi * 1.6)
     axes[0].legend(fontsize=7)
-    fig.suptitle("Q4: recovery after periods of demand above capacity (rational miners, auto wallets)", x=0.01, ha="left")
+    fig.suptitle("Q4: recovery after periods of demand above capacity (rational miners, auto wallets)", x=0.01, y=1.03, ha="left")
     savefig(fig, "q4_recovery.png")
 
 
@@ -737,8 +742,8 @@ def q5():
     axes[1].set_yscale("log"); axes[1].set_xlabel("demand ÷ Z_M"); axes[1].set_ylabel("p99 wait, blocks (0 → 0.1)"); axes[1].set_title("p99 wait, first 139 days after a demand step", loc="left")
     for ax in axes:
         log_x(ax, [0.5, 0.8, 1, 1.2, 2, 5])
-    axes[1].legend(fontsize=6, ncol=2)
-    fig.suptitle("Q5: fee market (solid v17, dashed v16; darker blue = higher level; orange = auto)", x=0.01, ha="left")
+    axes[1].legend(fontsize=6, ncol=1, loc="upper left", bbox_to_anchor=(1.02, 1.0))
+    fig.suptitle("Q5: fee market (solid v17, dashed v16; darker blue = higher level; orange = auto)", x=0.01, y=1.03, ha="left")
     savefig(fig, "q5_fee_market.png")
 
 
@@ -935,14 +940,18 @@ def q7():
                 axes[row, 1].plot(t, s.max_weight / 1e6, ls=ls, color=col, label=lab)
                 axes[row, 2].plot(t, s.fee_low, ls=ls, color=col, label=lab)
         axes[row, 0].set_ylabel("after fork: " + ("38 tx/block" if wal == "auto" else "demand > capacity"))
-        axes[row, 2].set_yscale("log")
-        axes[row, 1].set_yscale("log")
+        for ax in (axes[row, 1], axes[row, 2]):
+            ax.set_yscale("log")
+            ax.yaxis.set_minor_locator(LogLocator(base=10, subs=(2, 5)))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+            ax.yaxis.set_minor_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    fig.subplots_adjust(wspace=0.38)
     axes[0, 0].set_title("M_L (MB)", loc="left"); axes[0, 1].set_title("max block weight (MB)", loc="left"); axes[0, 2].set_title("lowest fee level (XMR/byte)", loc="left")
     for ax in axes[1]:
         ax.set_xlabel("thousand blocks after the fork")
     h, l = axes[0, 0].get_legend_handles_labels()
     fig.legend(h, l, loc="lower center", ncol=4, fontsize=7, bbox_to_anchor=(0.5, -0.06))
-    fig.suptitle("Q7: v16→v17 fork; solid = reference code (no rescale), dashed = spec transitional rule", x=0.01, ha="left")
+    fig.suptitle("Q7: v16→v17 fork; solid = reference code (no rescale), dashed = spec transitional rule", x=0.01, y=1.03, ha="left")
     savefig(fig, "q7_fork.png")
 
 
@@ -995,4 +1004,5 @@ if __name__ == "__main__":
     which = sys.argv[1:] or ["chains", "q1", "q2", "q3", "q4", "q5", "q6", "q7"]
     for w in which:
         globals()[w]()
-    keys()
+    if not sys.argv[1:]:  # key_numbers.md covers every question, so only a full run writes it
+        keys()
