@@ -165,8 +165,8 @@ wallet's M_LW), and notes that this is "only necessary if MLOld > ZMOld".
   from 29–39 blocks after the fork, through the short-term window. With demand above capacity, M_L is 7.5% higher
   and the minimum fee per byte 14–15% lower from about 46,000 blocks after the fork: the scaled tail of pre-fork weights holds up the
   median once post-fork weights fill half the window. The spec says the medians are then "calculated normally".
-  Two readings of that, scaling the stored long-term weights or recomputing them with v17's clamp, give the same
-  result here.
+  Three readings of that (scaling the stored long-term weights; re-clamping the scaled block weights around the
+  at-fork M_L; re-running the long-term computation block by block) give the same result here.
 * **If pre-fork M_L is above 300,000, it matters a lot.** Without rescaling, M_L at the fork is 625k instead of
   938k for X = 450k, and 1.0M instead of 2.08M for X = 1M. The minimum fee per byte jumps 2.3–4.5× at the fork,
   where with rescaling it stays nearly continuous. The gap lasts 146,000–200,000 blocks.
@@ -180,7 +180,7 @@ wallet's M_LW), and notes that this is "only necessary if MLOld > ZMOld".
      `get_long_term_block_weight_median`.
    * **With M_L at the floor, as on mainnet today:** sustained post-fork demand of 3× today's transactions makes
      M_N differ within 29–39 blocks. Demand above capacity gives M_L 7.5% higher from about 46,000 blocks on,
-     under both readings of the rule.
+     under all three readings of the rule.
    * **With pre-fork M_L above 300,000:** the differences are 2.3–4.5× in fees and up to 2.08× in limits, for over
      100,000 blocks.
    * **Suggestion:** either implement the rule, or amend the spec to match the code and drop or qualify the note.
@@ -594,7 +594,7 @@ How each parameter moves the metrics (geometric means over the rest of the grid)
 ![Q7 fork](figures/q7_fork.png)
 
 Pre-fork windows filled with M_L = X; demand after the fork is 38 tx/block. "ref" is the reference code and
-"spec" the transitional rule. At the first post-fork block (both readings of the rule agree here):
+"spec" the transitional rule. At the first post-fork block (all three readings of the rule agree here):
 
 | X | M_L ref / spec | max weight ref / spec | f_L ref / spec (XMR/byte) | f_L just before the fork |
 |---|---|---|---|---|
@@ -610,12 +610,13 @@ Pre-fork windows filled with M_L = X; demand after the fork is 38 tx/block. "ref
 * **Duration.** With demand at 38 tx/block, the differences fade only as pre-fork weights leave the window: about
   146,000 blocks for X = 450k and 196,000 for 600k (2,000 more under the re-clamped reading). With demand above capacity after the fork and X ≥ 450k,
   they persist for all 200,000 blocks simulated (for X = 300k the runs differ for 1,259 blocks or not at all).
-* **Where the two readings differ.** They disagree only later, in the synthetic runs with X ≥ 1M and demand
-  falling after the fork. There the largest fee gap reaches 6.4× with re-clamping vs 4.4× without.
+* **Where the readings differ.** The rolling and re-clamped readings give the same series in every run. The
+  stored reading parts from them only later, in the synthetic runs with X ≥ 1M and demand falling after the
+  fork, where the largest fee gap reaches 6.4× under the other two against 4.4×, and by the 2,000 blocks above.
 
 From the real mainnet windows (Q7b, 8 seeds):
 
-| demand after fork | effect of the rule (both readings) |
+| demand after fork | effect of the rule (all three readings) |
 |---|---|
 | 38 tx/block | none: the series are identical |
 | 3× today's transactions | M_N differs from 29–39 blocks after the fork (short-term window); M_L 7.1–7.7% higher at +50,000 blocks, 4.1–4.3% at +100,000 |
@@ -624,7 +625,7 @@ From the real mainnet windows (Q7b, 8 seeds):
 These come from the rescaled pre-fork weights carrying the median once post-fork weights make up half the
 window. Mainnet's pre-fork long-term weights reach 456,144, and 456,144 × 625/300 = 950k is above most post-fork
 weights. Re-clamping caps that tail at v17's 750k, but the tail still ranks above the early post-fork weights,
-and the median depends only on rank. So both readings give the same result.
+and the median depends only on rank. So all three readings give the same result.
 
 ## Limitations
 
@@ -659,10 +660,11 @@ and the median depends only on rank. So both readings give the same result.
   mainnet's current M_L but not its short-term window. Demand starts instantly at its level.
 * **Q6** uses one seed per rule set (576 sets) and first-order shares. Interactions are visible in the sums but
   not decomposed.
-* **The transitional rule's exact computation** is not spelled out in the spec. Two readings were tested: scaling
-  the stored long-term weights, and re-clamping the scaled block weights around the at-fork M_L. A third, re-running
-  the rolling long-term computation over the scaled pre-fork weights block by block, was not; with M_L at the
-  floor for the whole pre-fork window, as on mainnet, it coincides with the second.
+* **The transitional rule's exact computation** is not spelled out in the spec. Three readings were tested:
+  scaling the stored long-term weights; re-clamping the scaled block weights around the at-fork M_L; and
+  re-running the rolling long-term computation over the scaled pre-fork weights block by block (with the stored
+  reading standing in for the unknown history before the window). The third coincided with the second in every
+  run.
 * **Stressnet's sizes and speeds aren't mainnet's.** Its zone is 10 MB and its long-term window 10,080 blocks
   (flag 8). It was used only to confirm transaction weights, the 5/6 clamp and the slight overshoot of M_N, none
   of which depend on the window; not as a source of block-size dynamics.
@@ -705,6 +707,8 @@ Third revision, after a second review:
   functions themselves matched monerod and `fcmp++-stage` line for line.
 * **Stressnet's shorter long-term window** (10,080 blocks) is recorded alongside its 10 MB zone; no number in the
   study depended on it. Node addresses were removed from the text.
+* **The third reading of the transitional rule** (block-by-block recompute, `spec_rolling`) is now implemented
+  and run. It matches the re-clamped reading in every Q7 run, and all three readings agree on the mainnet start.
 * **The malicious miner below 50%:** "cannot move M_L at all" holds only when honest demand is well below Z_M
   (new scenario `q3e_miner_busy`).
 * **Q7:** the spec's text covers the short-term median too, so the early difference is what the spec asks for.

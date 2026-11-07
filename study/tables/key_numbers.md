@@ -151,11 +151,11 @@
 | Q6 | 51% miner to 2× M_L: XMR: largest share; sum | clamp 0.75; 1.13 |
 | Q6 | 51% miner to 2× M_L: blocks: largest share; sum | clamp 0.90; 0.92 |
 | Q6 | share of rule sets where the min-fee spammer doubled M_L, T_R = 3,000 | 0.00 |
-| Q7 | pre-fork M_L 300k: M_L ref / spec / re-clamped (kB); f_L ref ÷ spec at the first post-fork block | 625 / 625 / 625; 1.00 |
-| Q7 | pre-fork M_L 450k: M_L ref / spec / re-clamped (kB); f_L ref ÷ spec at the first post-fork block | 625 / 938 / 938; 2.33 |
-| Q7 | pre-fork M_L 600k: M_L ref / spec / re-clamped (kB); f_L ref ÷ spec at the first post-fork block | 625 / 1,250 / 1,250; 4.17 |
-| Q7 | pre-fork M_L 1000k: M_L ref / spec / re-clamped (kB); f_L ref ÷ spec at the first post-fork block | 1,000 / 2,083 / 2,083; 4.17 |
-| Q7 | pre-fork M_L 2000k: M_L ref / spec / re-clamped (kB); f_L ref ÷ spec at the first post-fork block | 2,000 / 4,167 / 4,167; 4.32 |
+| Q7 | pre-fork M_L 300k: M_L ref / spec / re-clamped / rolling (kB); f_L ref ÷ spec at the first post-fork block | 625 / 625 / 625 / 625; 1.00 |
+| Q7 | pre-fork M_L 450k: M_L ref / spec / re-clamped / rolling (kB); f_L ref ÷ spec at the first post-fork block | 625 / 938 / 938 / 938; 2.33 |
+| Q7 | pre-fork M_L 600k: M_L ref / spec / re-clamped / rolling (kB); f_L ref ÷ spec at the first post-fork block | 625 / 1,250 / 1,250 / 1,250; 4.17 |
+| Q7 | pre-fork M_L 1000k: M_L ref / spec / re-clamped / rolling (kB); f_L ref ÷ spec at the first post-fork block | 1,000 / 2,083 / 2,083 / 2,083; 4.17 |
+| Q7 | pre-fork M_L 2000k: M_L ref / spec / re-clamped / rolling (kB); f_L ref ÷ spec at the first post-fork block | 2,000 / 4,167 / 4,167 / 4,167; 4.32 |
 | Q7 | mainnet fill_after, spec ÷ ref at plus_100000: M_L | 1.0756–1.0766 |
 | Q7 | mainnet fill_after, spec ÷ ref at plus_100000: M_N | 1.0756–1.0766 |
 | Q7 | mainnet fill_after, spec ÷ ref at plus_100000: f_L | 0.8571–0.8571 |
@@ -164,7 +164,10 @@
 | Q7 | mainnet fill_after, spec ÷ ref at plus_50000: f_L | 0.8500–0.8500 |
 | Q7 | mainnet base38, spec: first difference (blocks after fork, per seed); max M_L ratio | none, none; 1.0000 |
 | Q7 | mainnet base38, spec_reclamped: first difference (blocks after fork, per seed); max M_L ratio | none, none; 1.0000 |
+| Q7 | mainnet base38, spec_rolling: first difference (blocks after fork, per seed); max M_L ratio | none, none; 1.0000 |
 | Q7 | mainnet x3, spec: first difference (blocks after fork, per seed); max M_L ratio | 39, 29; 1.0724 |
 | Q7 | mainnet x3, spec_reclamped: first difference (blocks after fork, per seed); max M_L ratio | 39, 29; 1.0724 |
+| Q7 | mainnet x3, spec_rolling: first difference (blocks after fork, per seed); max M_L ratio | 39, 29; 1.0724 |
 | Q7 | mainnet fill_after, spec: first difference (blocks after fork, per seed); max M_L ratio | 45949, 45949; 1.0745 |
 | Q7 | mainnet fill_after, spec_reclamped: first difference (blocks after fork, per seed); max M_L ratio | 45949, 45949; 1.0745 |
+| Q7 | mainnet fill_after, spec_rolling: first difference (blocks after fork, per seed); max M_L ratio | 45949, 45949; 1.0745 |
