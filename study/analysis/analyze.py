@@ -400,7 +400,7 @@ def q2():
         ax.axvspan(0, 1, color=GRID, alpha=0.6, lw=0)
         ax.set_title(ttl, loc="left")
         ax.set_xlabel("days since surge start")
-    axes[0].legend(fontsize=8, loc="center right")
+    axes[2].legend(fontsize=8, loc="upper right")  # the only panel with empty space top-right
     fig.suptitle("Q2: a 20× surge lasting one day (shaded), auto priority, first seed", x=0.01, y=1.03, ha="left")
     savefig(fig, "q2_surge_example.png")
 
