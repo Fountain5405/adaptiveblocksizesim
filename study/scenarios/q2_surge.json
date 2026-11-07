@@ -33,6 +33,18 @@
     ]
    },
    {
+    "label": "v16_9093_lo",
+    "rules": "v16",
+    "demand": {
+     "txs_per_block": 18
+    },
+    "tx": [
+     {
+      "weight": 9093
+     }
+    ]
+   },
+   {
     "label": "v17",
     "rules": "v17",
     "tx": [

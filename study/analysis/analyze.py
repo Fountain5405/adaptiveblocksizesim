@@ -23,7 +23,7 @@ os.makedirs(TAB, exist_ok=True)
 
 DAY, MONTH, YEAR = 720, 21600, 262800
 # Reference categorical palette (dataviz skill, light mode), fixed order per entity
-C = {"v17": "#2a78d6", "v16": "#eb6834", "v17_sf50": "#1baf7a", "v16_9093": "#eda100", "v17_mix": "#6250d6"}
+C = {"v17": "#2a78d6", "v16": "#eb6834", "v17_sf50": "#1baf7a", "v16_9093": "#eda100", "v16_9093_lo": "#eda100", "v17_mix": "#6250d6"}
 INK, INK2, GRID, SURF = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
 plt.rcParams.update({
     "figure.facecolor": SURF, "axes.facecolor": SURF, "savefig.facecolor": SURF,
@@ -216,7 +216,7 @@ def q1():
     ax.set_yscale("log")
     ax.set_xlabel("days")
     ax.set_ylabel("maximum block weight, bytes")
-    ax.set_title("Q1: short-term ramp by fee level (solid v17, dashed v16; darker = higher fee)", loc="left")
+    ax.set_title("Q1: short-term ramp by fee level (solid v17, dashed v16; darker = higher fee; v17 L3 and L4 coincide, as do v16 L2 and L3)", loc="left", fontsize=9)
     ax.legend(ncol=3, fontsize=7)
     savefig(fig, "q1_ramp_by_level.png")
 
@@ -331,7 +331,7 @@ def q2():
     write("q2.md", "\n".join(out))
 
     A = agg[agg.fee == "auto"].set_index(["rules", "demand.surge_blocks", "demand.surge_mult"])
-    for r in ["v16", "v16_9093", "v17", "v17_sf50", "v17_mix"]:
+    for r in ["v16", "v16_9093", "v16_9093_lo", "v17", "v17_sf50", "v17_mix"]:
         x = A.loc[(r, 720, 5)]
         key("Q2", f"{r} 1-day 5×: mean wait / mined / mined ≤1 day", f"{x.wait_mean:,.0f} / {x.mined:.3f} / {x.served720:.3f}")
     for r in ["v16", "v17", "v17_sf50"]:
@@ -352,7 +352,7 @@ def q2():
 
     fig, axes = plt.subplots(2, 3, figsize=(11, 6.2), sharex=True, sharey="row")
     for k, dur in enumerate([30, 720, 5040]):
-        for r in ["v16", "v16_9093", "v17", "v17_sf50", "v17_mix"]:
+        for r in ["v16", "v16_9093", "v16_9093_lo", "v17", "v17_sf50", "v17_mix"]:
             g = agg[(agg.fee == "auto") & (agg.rules == r) & (agg["demand.surge_blocks"] == dur)]
             axes[0, k].plot(g["demand.surge_mult"], g.wait_mean.clip(lower=0.1), marker="o", ms=4, color=C[r], label=r)
             axes[1, k].plot(g["demand.surge_mult"], g.served720, marker="o", ms=4, color=C[r], label=r)
@@ -386,19 +386,21 @@ def q2():
     savefig(fig, "q2_surge_levels.png")
 
     fig, axes = plt.subplots(1, 3, figsize=(11, 3.2))
-    for r in ["v16", "v17", "v17_sf50"]:
+    # The 8x and 50x caps give identical runs for a one-day surge, so v17_sf50 is drawn dashed on top of v17.
+    for r, ls, lab in [("v16", "-", "v16"), ("v17", "-", "v17"), ("v17_sf50", "--", "v17 with 50× cap (identical to v17)")]:
         x = d[(d.rules == r) & (d.fee == "auto") & (d["demand.surge_blocks"] == 720) & (d["demand.surge_mult"] == 20) & (d.seed_index == 0)].iloc[0]
         s = series("q2_surge", int(x.run_id))
         s = s[(s.block >= 4000) & (s.block <= 9000)]
         t = (s.block - 5000) / DAY
-        axes[0].plot(t, s.pool_user_bytes / 1e6, color=C[r], label=r)
-        axes[1].plot(t, s.m_n / 1e6, color=C[r], label=r)
-        axes[2].plot(t, s.mb_mean / 1e6, color=C[r], label=r)
+        lw = 1.2 if r == "v17_sf50" else 2
+        axes[0].plot(t, s.pool_user_bytes / 1e6, color=C[r], ls=ls, lw=lw, label=lab)
+        axes[1].plot(t, s.m_n / 1e6, color=C[r], ls=ls, lw=lw, label=lab)
+        axes[2].plot(t, s.mb_mean / 1e6, color=C[r], ls=ls, lw=lw, label=lab)
     for ax, ttl in zip(axes, ["backlog (MB; pool cap 648 MB)", "M_N (MB)", "mean block weight (MB)"]):
         ax.axvspan(0, 1, color=GRID, alpha=0.6, lw=0)
         ax.set_title(ttl, loc="left")
         ax.set_xlabel("days since surge start")
-    axes[0].legend(fontsize=8)
+    axes[0].legend(fontsize=8, loc="upper right")
     fig.suptitle("Q2: a 20× surge lasting one day (shaded), auto priority, first seed", x=0.01, y=1.03, ha="left")
     savefig(fig, "q2_surge_example.png")
 
@@ -502,10 +504,11 @@ def q3():
         axes[1].plot(ss.cum_spam_bytes / 1e9, ss.cum_spam_xmr, ls=ls, color=C[r], label=f"{r} {s}")
     axes[0].set_xscale("symlog", linthresh=10); axes[0].set_xlabel("XMR spent by the spammer"); axes[0].set_ylabel("M_L / initial M_L")
     axes[0].set_yscale("log"); axes[0].set_title("M_L raised vs XMR spent", loc="left")
+    axes[1].set_xscale("log"); axes[1].set_yscale("log"); axes[1].set_xlabel("GB of spam in the chain"); axes[1].set_ylabel("cumulative XMR spent")
+    # Headroom for the legend: after the scales are set, so the log axes keep positive limits.
     for ax in axes:
         lo, hi = ax.get_ylim()
         ax.set_ylim(lo, hi * 1.6)
-    axes[1].set_xscale("log"); axes[1].set_yscale("log"); axes[1].set_xlabel("GB of spam in the chain"); axes[1].set_ylabel("cumulative XMR spent")
     axes[1].set_title("Bloat: XMR spent vs GB added", loc="left")
     axes[0].legend(fontsize=7, ncol=1)
     fig.suptitle("Q3: fee-paying spammer, 2-year campaigns (first seed)", x=0.01, y=1.03, ha="left")
@@ -568,7 +571,7 @@ def q3():
     axes[0].axvline(0.5, color=INK2, lw=0.8, alpha=0.5)
     axes[1].axvline(0.5, color=INK2, lw=0.8, alpha=0.5)
     axes[0].legend(fontsize=8)
-    fig.text(0.01, -0.04, "pad_max: v16 and v17 overlap (each padded block forfeits the 0.6 XMR reward)", fontsize=7, color=INK2)
+    fig.text(0.01, -0.04, "Left: v16 pad_clamp and pad_max coincide (both exceed the clamp). Right: pad_max overlaps for v16 and v17 (each padded block forfeits the 0.6 XMR reward).", fontsize=7, color=INK2)
     fig.suptitle(f"Q3d: malicious miner padding its blocks for one year ({nseeds(m)} seeds)", x=0.01, y=1.03, ha="left")
     savefig(fig, "q3_miner.png")
 
