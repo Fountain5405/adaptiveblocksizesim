@@ -15,7 +15,8 @@ that moved.*
 ## Summary of findings
 
 **Q1 Growth capacity.** If demand stays above capacity, the long-term median M_L grows at exactly the clamp
-ratio per 50,000 blocks (×1.7 for v16, ×1.2 for v17). This happened in every run, and no run exceeded the bound.
+ratio per 50,000 blocks (×1.7 for v16, ×1.2 for v17). This happened in every run whose fee level could pay to
+cross M_N (with T_R = 3,000 and 9,093-byte transactions it never can; see Q6), and no run exceeded the bound.
 The limit (the maximum block weight, 2·M_N) gets there first, and actual blocks follow later:
 
 * **The limit on v17** reaches 10 MB in 0.3 days if miners fill blocks, 1.7 days with wallets on their default
@@ -40,11 +41,13 @@ dropped transactions rather than week-long queues.
 
 * **Up to 2× today's demand** is absorbed.
 * **A one-day 5× surge** gives a mean wait of 274 blocks (9 h) on v17 against 131 on v16, and every transaction
-  is mined. Bigger transactions are the reason, not the new rules: with v16 rules and the same 9,093-byte
-  transactions, the mean wait is 627 blocks and only 78% are ever mined.
+  is mined. Bigger transactions are the reason, not the new rules: today's 38 tx/block fill 55% of v17's zone but
+  32% of v16's. With v16 rules, the same 9,093-byte transactions and the same 55% of the zone (18 tx/block), the
+  mean wait is 387 blocks, so at equal load v17 queues less.
 * **Bigger one-day surges fill the pool on v17.** monerod then prunes the newest lowest-fee transactions. 53% of
   a 10× surge's transactions are mined, 26% of a 20× surge's and 11% of a 50× surge's. The figures for v16, with
-  today's smaller transactions, are 100%, 66% and 26%.
+  today's smaller transactions, are 100%, 66% and 26%. The pool is a fixed 648 MB whatever the zone, so at equal
+  load the bigger chain loses more: the v16 control at 18 tx/block keeps 78% of a 10× surge against v17's 53%.
 * **Paying more works.** In a one-day 5× surge on v17:
 
   | fee level | lowest | "normal" | 16× | 64× | f_X | users pay more |
@@ -52,32 +55,39 @@ dropped transactions rather than week-long queues.
   | mean wait (blocks) | 466 | 273 | 26 | 1.8 | 0.8 | 2.7 |
 
   At the lowest level 8% are never mined. Users who pay more spend 0.0027 XMR per transaction on average.
-* **The 8× surge cap makes no difference for surges of a day or less** (results identical to a 50× cap), and
-  little for a week up to 20×. It matters for a week-long 50× surge: 32% of its transactions are mined under v17,
-  against 78% with a 50× cap.
+* **The 8× surge cap makes no difference for surges of a day or less** (results identical to a 50× cap). For a
+  week-long 20× surge it changes waits (116 vs 29 blocks) more than drops (80% vs 83% mined). It matters for a
+  week-long 50× surge: 32% of its transactions are mined under v17, against 78% with a 50× cap.
 
-**Q3 Spam and bloat.** On v17, growing the chain by attack is dearer and slower, and keeping blocks full costs a
-third more. A spammer who keeps a backlog pays less on v17, because blocks stop growing at the 8× cap.
+**Q3 Spam and bloat.** Filler costs the same per byte under both rule sets: 20 XMR per GB at today's M_L. What
+differs is how much the chain gives in return. Raising M_L costs about twice as much on v17 and takes twice as
+long, because the clamp is 1.2 instead of 1.7. Adding bulk costs more on v17 beyond about 100 GB, but it is
+faster, because v17's blocks are bigger. The totals below also reflect the two chains' free space at today's
+38 tx/block, 55% of v17's zone and 32% of v16's, not only the rules.
 
-* **Keeping blocks full at M_N** without a backlog costs 3.9 XMR/day on v17 vs 3.0 on v16 (×1.33). Both pay
-  20 XMR per GB.
+* **Keeping blocks full at M_N** without a backlog costs 3.93 XMR/day on v17 vs 2.95 on v16. Both pay 20 XMR
+  per GB; the ratio (×1.33) is the ratio of the free space, 274 kB against 206 kB per block.
 * **It also raises every default wallet's fee about 4×.** wallet2 switches to "normal" when the last 10 blocks are
   over 80% full. On v17, users then pay 0.0007 instead of 0.00018 XMR per transaction. Across today's
   38 tx/block that is about 14 XMR/day extra, more than the attacker spends (on v16, 4.1 vs 3.0 XMR/day). Users
   don't wait any longer; they outbid the spam.
 * **A backlog at the lowest fee** triggers the Q1 ratchet. Over 30 days it costs 1,823 XMR on v17, with M_N
-  reaching 5 MB, vs 3,145 XMR on v16, with M_N reaching 15 MB. Here v17 is the cheaper one (×0.58).
-* **Raising M_L at the lowest fee:** doubling costs 1,440 XMR over 281 days on v17 vs 687 XMR over 142 days on
-  v16. Quadrupling costs 2,358 vs 866 XMR.
-* **Adding data,** with the cheapest of four simple strategies:
+  reaching 5 MB, vs 3,145 XMR on v16, with M_N reaching 15 MB. v17 costs less because it yields less: the spam
+  adds 91 GB instead of 157 GB, at the same 20 XMR/GB, because blocks stop growing at the 8× cap.
+* **Raising M_L at the lowest fee:** doubling costs 1,440 XMR over 279 days on v17 vs 687 XMR over 140 days on
+  v16. Quadrupling costs 2,358 vs 866 XMR (558 vs 215 days). The times are the clamp ratios: four steps of
+  50,000 blocks for ×1.2, two for ×1.7.
+* **Adding data,** with the cheapest of four simple strategies (first seed; the spread between seeds is
+  negligible, as the spam is deterministic):
 
   | data added | v17 | v16 |
   |---|---|---|
-  | 10 GB | about 200 XMR | about 200 XMR |
-  | 100 GB | 1,238 XMR | 793 XMR |
-  | 1 TB | 12,542 XMR | 1,073 XMR |
+  | 10 GB | about 200 XMR, 53 days | about 200 XMR, 69 days |
+  | 100 GB | 1,238 XMR, 235 days | 793 XMR, 185 days |
+  | 1 TB | 12,542 XMR, 237 days | 1,073 XMR, 463 days |
 
-  Growing the limit first is cheapest, because the minimum fee per byte falls as 1/M_L².
+  Growing the limit first is cheapest, because the minimum fee per byte falls as 1/M_L². v16's bigger clamp
+  makes that cheaper; v17's bigger blocks make bulk arrive sooner.
 * **A malicious miner below 50%** can't move M_L at today's demand, because both windows are medians. With honest
   demand at 90–95% of Z_M it can. Padding to the clamp for a year, a 45% miner raised M_L by 6–11% on v17 (2–7% on
   v16), and a 30% miner by up to 3%.
@@ -115,8 +125,8 @@ third more. A spammer who keeps a backlog pays less on v17, because blocks stop 
   as the steady state.
 * **"Normal" is enough to make blocks grow** when demand is real. Once demand reaches Z_M, 45–47% of v17 blocks
   exceed M_N at equilibrium, by 0.8–3.8% on average.
-* **A sudden step in demand is where auto priority struggles.** Going from today's demand to 2·Z_M gives a p99
-  wait of 18 blocks on v17 (291 on v16) over the first 139 days.
+* **A sudden step in demand is where auto priority struggles.** A chain with M_L at Z_M that is loaded with
+  2·Z_M from the first block gives a p99 wait of 18 blocks on v17 (291 on v16) over the first 139 days.
 * **A daily demand cycle around Z_M** (amplitude 0.5–0.9) gives mean waits of 20–57 blocks and a p99 of 48–108
   on v17. Low-fee transactions wait up to 440–510 blocks: M_N shrinks in each daily trough, and transactions sent
   at the lowest level just before a backlog are overtaken by every later "normal" one. Raising the fee during a
@@ -189,8 +199,8 @@ wallet's M_LW), and notes that this is "only necessary if MLOld > ZMOld".
    * Evidence: `tables/q2.md`, including the unbounded-pool comparison.
 4. **The penalty-free zone in transactions (Q2).** 625 kB holds 69 2-in/2-out FCMP++ transactions, against about
    120 of today's in 300 kB. After the fork, moderate surges therefore queue about twice as long as today: 274 vs
-   131 blocks for a one-day 5× surge. At equal transaction weight v17 does better than v16: 274 vs 627 blocks, and
-   every transaction mined vs 78%.
+   131 blocks for a one-day 5× surge. At equal transaction weight and equal load (v16 rules, 9,093-byte
+   transactions, 18 tx/block = 55% of its zone) v17 still queues less: 274 vs 387 blocks.
 5. **The 8× surge cap (Q2)** makes no difference for surges of up to a day once the pool limit is modelled. For a
    week-long 50× surge, 32% of transactions are mined under v17, against 78% with a 50× cap. This is a trade-off
    against Q3: under a 50× cap, a spammer's backlog could ratchet M_N to 50·M_L (31 MB at v17's zone) instead of
@@ -203,9 +213,14 @@ wallet's M_LW), and notes that this is "only necessary if MLOld > ZMOld".
    by later "normal" ones, and daily cycles at Z_M leave some waiting 440–510 blocks. A users-pay-more style
    escalation removed almost all waiting in every scenario, at 6.7–8.5× the fee. The 1,000-block wallet grace
    period caused no trouble in any run.
-8. **Stressnet's 10 MB penalty-free zone.** Its long-term weights are 8,333,333 = 10 MB × 5/6, so block-size
-   dynamics observed on stressnet are not those of mainnet parameters. Its transaction weights do match
-   `get_fcmp_pp_transaction_weight_v1` exactly.
+8. **Stressnet's scaling parameters are not mainnet's.** Its penalty-free zone is 10 MB
+   (`CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V17 = 10,000,000`, marked stressnet-specific; its long-term weights
+   are 8,333,333 = 10 MB × 5/6) and its long-term window is 10,080 blocks
+   (`CRYPTONOTE_STRESSNET_BLOCK_WEIGHT_WINDOW_SIZE`) instead of 100,000, so M_L can step every 5,040 blocks
+   (7 days) rather than every 50,000 (69 days). Growth, recovery and fee dynamics seen on stressnet therefore run
+   about 10× faster than this report's v17 numbers, in a zone 16× larger. The surge factor is 8 on both. Stressnet's
+   transaction weights match `get_fcmp_pp_transaction_weight_v1` exactly. (Parameters read from
+   `seraphis-migration/monero` at d80596ad1, branch `fcmp++-beta-stressnet-v3`.)
 
 ## Methods
 
@@ -269,7 +284,7 @@ study's work happens around them:
 | Spam attacker | a fixed fee level, `auto` or `top`. Modes: `fill_to` (each block, top the pool up to max(a·M_N, b·M_L) or the clamp ratio × M_L, so no backlog forms), `topup` (keep k·M_N of spam waiting), `rate`. Optional duration or XMR budget. Spend is counted when a transaction is included, at the fee then in force. |
 | Malicious miner | each block is the attacker's with probability h (separate random stream). It builds the block like an honest miner, then pads with zero-fee filler to M_N, the clamp ratio × M_L, or 2·M_N. Its cost is the penalty above what the unpadded block would have paid. |
 | Rule switch | v16 → v17 at block K, windows carried across. Reference behaviour: no rescaling. The spec's rule scales pre-fork weights × 625,000/300,000 in every median spanning the fork (long- and short-term, consensus and wallet), applied once at the fork. Two readings of "the medians are then calculated normally": `spec` scales the stored long-term weights; `spec_reclamped` recomputes them from the scaled block weights with v17's clamp around the scaled pre-fork M_L. Wallet grace (10 → 1,000) and the number of fee levels change at the fork. |
-| Initial state | steady (windows filled with Z_M), or the last 100,000 mainnet blocks: heights 3,697,558–3,797,557 from the mainnet node at 192.168.1.76 (`scripts/fetch_chain.py`, committed as `data/mainnet_weights.csv.gz`). Only Q7b uses the mainnet start. The other questions start at steady state, which matches today's mainnet M_L = Z_M = 300,000. |
+| Initial state | steady (windows filled with Z_M), or the last 100,000 mainnet blocks: heights 3,697,558–3,797,557 from a local mainnet node (`scripts/fetch_chain.py`, committed as `data/mainnet_weights.csv.gz`). Only Q7b uses the mainnet start. The other questions start at steady state, which matches today's mainnet M_L = Z_M = 300,000. |
 | Measurement window | Q5's equilibrium runs last 800,000 blocks and measure the last 100,000 (`measure_from`); a table column flags any run whose M_L still moved by more than 1% in that window. |
 
 ### Baseline numbers taken from real chains (`tables/chains.md`)
@@ -278,7 +293,7 @@ study's work happens around them:
   The study's baseline demand is therefore 38 tx/block, with 2,500-byte transactions for v16.
 * **v17 runs** use 9,093-byte transactions (FCMP++ 2-in/2-out), plus one mix of 25% 7,650 / 50% 9,093 / 25%
   11,851.
-* **Stressnet** (testnet with the FCMP++ fork, version 18 from height 3,103,520, node at 192.168.1.22:28089):
+* **Stressnet** (testnet with the FCMP++ fork, version 18 from height 3,103,520, a local node):
   one-transaction blocks minus the coinbase are exactly 9,093 or 7,650 bytes.
 
 ### Assumptions (as in RULES.md, plus the pool)
@@ -363,21 +378,28 @@ headroom: M_N/M_L reached 2.3 after 5 years at +200% a year.
 
 ![Q2 example](figures/q2_surge_example.png)
 
-All surges start from 38 tx/block (Poisson). "Wait" is counted in blocks (2 minutes each), for the transactions
-that arrive during the surge and are mined. "Mined" is the share of those transactions ever mined.
+All surges start from 38 tx/block (Poisson), which is 55% of v17's penalty-free zone and 32% of v16's. "Wait"
+is counted in blocks (2 minutes each), for the transactions that arrive during the surge and are mined; a wait
+of 0 means mined in the next block. "Mined" is the share of those transactions ever mined.
 
 One-day surge, wallets on auto priority (mean wait in blocks, share mined):
 
-| surge | v16 (2,500 B) | v16 with 9,093 B | v17 | v17 mix | v17 with 50× cap |
-|---|---|---|---|---|---|
-| 2× | 0, 100% | 196, 100% | 1, 100% | 2, 100% | 1, 100% |
-| 5× | 131, 100% | 627, 78% | 274, 100% | 277, 100% | 274, 100% |
-| 10× | 500, 100% | 719, 39% | 390, 53% | 387, 55% | 390, 53% |
-| 20× | 795, 66% | 757, 19% | 422, 26% | 418, 28% | 422, 26% |
-| 50× | 889, 26% | 777, 8% | 438, 11% | 432, 11% | 438, 11% |
+| surge | v16 (2,500 B) | v16, 9,093 B, 38 tx | v16, 9,093 B, 18 tx | v17 | v17 mix | v17 with 50× cap |
+|---|---|---|---|---|---|---|
+| 2× | 0, 100% | 196, 100% | 1, 100% | 1, 100% | 2, 100% | 1, 100% |
+| 5× | 131, 100% | 627, 78% | 387, 100% | 274, 100% | 277, 100% | 274, 100% |
+| 10× | 500, 100% | 719, 39% | 745, 78% | 390, 53% | 387, 55% | 390, 53% |
+| 20× | 795, 66% | 757, 19% | 844, 39% | 422, 26% | 418, 28% | 422, 26% |
+| 50× | 889, 26% | 777, 8% | 893, 16% | 438, 11% | 432, 11% | 438, 11% |
 
+* **Two v16 controls with v17's transaction weight.** At 38 tx/block, 9,093-byte transactions already fill 345 kB
+  of v16's 300 kB zone: that chain pays "normal" fees and queues before any surge, so its column shows what
+  today's v16 would do if transactions grew 3.6× with no rule change, not what the rules do. The 18 tx/block
+  column puts the same transactions at the same 55% of the zone as v17. Against it, v17 queues less at 5×
+  (274 vs 387 blocks) but loses more at 10× and above (53% vs 78% mined), because the 648 MB pool is the same
+  size on both chains and v17's surge is bigger in bytes.
 * **v17 in detail.** The backlog peaks at 584 MB for a 5× surge and at the pool cap (647 MB at the end of a block) from 10× up. It clears
-  350–370 blocks after the surge ends. M_N reaches 2.76 MB in every surge from 5× up, so the 8× cap (5 MB) is
+  348–370 blocks after the surge ends. M_N reaches 2.76 MB in every surge from 5× up, so the 8× cap (5 MB) is
   never reached within a day. Default wallets pay "normal": 7.0e-4 XMR per transaction.
 * **Which fixed fee level gets 99% of a surge's transactions mined within a day?** On v17: "normal" (L1) up to
   5×, 16× (L2) at 10×, 64× (L3) at 20×, and none at 50×, where even f_X gets only 54% mined. Within an hour: 64×
@@ -411,17 +433,25 @@ Fee-paying spammer, with users at 38 tx/block on default wallets (8 seeds for (a
 | (a) what it costs users: extra fees per day | 4.1 XMR | 14.1 XMR | 3.5 |
 | (a) 30 days, keeping a block of backlog at the lowest fee | 3,145 (M_N → 15 MB) | 1,823 (M_N → 5 MB) | 0.58 |
 | (a) the same, naive spammer at the wallet's auto level | 19,443 | 7,922 | 0.41 |
-| (b) raise M_L to 2× (lowest fee, fill to clamp × M_L) | 687 XMR, 142 days | 1,440 XMR, 281 days | 2.1 |
-| (b) raise M_L to 4× | 866 XMR, 217 days | 2,358 XMR, 559 days | 2.7 |
+| (b) raise M_L to 2× (lowest fee, fill to clamp × M_L) | 687 XMR, 140 days | 1,440 XMR, 279 days | 2.1 |
+| (b) raise M_L to 4× | 866 XMR, 215 days | 2,358 XMR, 558 days | 2.7 |
 | (b) same at the top wallet level, to 2× | 104,627 | 192,753 | 1.8 |
-| (c) add 10 GB (cheapest strategy) | 201 | 202 | 1.0 |
+| (c) add 10 GB (cheapest strategy; first seed) | 201 (69 days) | 202 (53 days) | 1.0 |
 | (c) add 100 GB | 793 (185 days) | 1,238 (235 days) | 1.6 |
 | (c) add 1,000 GB | 1,073 (463 days) | 12,542 (237 days) | 11.7 |
 | (c) add 10,000 GB | 5,393 (548 days) | not reachable in 2 years | – |
 | 2 years of clamp spam | 1,114 XMR, 3.7 TB, 0.30 XMR/GB | 2,695 XMR, 0.88 TB, 3.05 XMR/GB | – |
 
-* **Why the backlog rows are cheaper on v17.** With a backlog, the ratchet of Q1 makes blocks grow, and the spam
-  must fill them. Blocks stop growing at 8·M_L = 5 MB on v17 against 50·M_L = 15 MB on v16.
+Days in (b) count from the start of the campaign. The (c) days are when the cheapest strategy reached that size,
+not the fastest.
+
+* **The (a) rows compare different amounts of free space, not different prices.** Both chains charge 20 XMR/GB
+  for filler. At 38 tx/block the spammer has 274 kB per block to fill on v17 (625 kB zone, 55% used) and 206 kB
+  on v16 (300 kB zone, 32% used); the ×1.33 is that ratio. Users' extra fees differ because v17's transactions
+  are 3.6× heavier and the "normal" multiplier applies to a larger base.
+* **Why the backlog rows cost less on v17.** With a backlog, the ratchet of Q1 makes blocks grow, and the spam
+  must fill them. Blocks stop growing at 8·M_L = 5 MB on v17 against 50·M_L = 15 MB on v16, so the v17 spammer
+  spends less and adds less: 91 GB in 30 days against 157 GB.
 * **The naive spammer pays 4×.** Its own backlog makes the wallet logic choose "normal".
 * **Why growth makes bloat cheap.** At steady size, bloat costs 20 XMR/GB under both rule sets. A spammer who first
   raises M_L pays less per byte, because the minimum fee per byte is R·T_R/M_L².
@@ -441,7 +471,7 @@ v17 and 0.32·Z_M for v16:
 
 At 60% the attacker's blocks also hold up M_S, so its padding becomes almost penalty-free. In M_L terms, a majority
 miner achieves far less under v17's 1.2 clamp than under 1.7. A fee-paying spammer at the lowest fee doubles M_L
-faster on v17 (281 days) than a 51% miner does: the miner reaches only ×1.44 in a year.
+faster on v17 (279 days) than a 51% miner does: the miner reaches only ×1.44 in a year.
 
 Minority miner when honest demand is close to Z_M (`q3e_miner_busy`, 8 seeds; M_L at the end of a year of padding
 to the clamp ÷ M_L at its start; without an attacker it stays at 1.000):
@@ -501,8 +531,9 @@ The first 139 days after demand jumps from a chain at steady state (`q5c_step`, 
 
 * **Why the first months cost more.** In the first months M_L has taken only one step (to 750 kB on v17), so
   fees don't yet reflect demand.
-* **The 5·Z_M ramp.** At 5·Z_M the pool fills during the first ramp and drops its newest transactions. That is
-  why the p99 wait of the mined ones is 0.
+* **The 5·Z_M ramp.** The p99 of 0 at 5·Z_M is a window effect, not a pool effect: the transactions that waited
+  arrived during the ramp, which covers under 1% of the 100,000-block window, and only 0.4% of the window's
+  transactions were evicted.
 * **Over M_N at equilibrium.** Once demand is at or above Z_M, 45–47% of blocks exceed M_N on v17, by 0.8–3.8% on
   average (v16: 47–48%, by 0.3–1.7%).
 
@@ -577,8 +608,8 @@ Pre-fork windows filled with M_L = X; demand after the fork is 38 tx/block. "ref
   (625/300)² ≈ 12,500/3,000, the T_R ratio. Without it, fees per byte jump 2.3–4.5× on top of the 3.6× larger
   transactions.
 * **Duration.** With demand at 38 tx/block, the differences fade only as pre-fork weights leave the window: about
-  146,000 blocks for X = 450k and 196,000 for 600k (2,000 more under the re-clamped reading). With demand above capacity after the fork, they persist for
-  all 200,000 blocks simulated.
+  146,000 blocks for X = 450k and 196,000 for 600k (2,000 more under the re-clamped reading). With demand above capacity after the fork and X ≥ 450k,
+  they persist for all 200,000 blocks simulated (for X = 300k the runs differ for 1,259 blocks or not at all).
 * **Where the two readings differ.** They disagree only later, in the synthetic runs with X ≥ 1M and demand
   falling after the fork. There the largest fee gap reaches 6.4× with re-clamping vs 4.4× without.
 
@@ -604,21 +635,39 @@ and the median depends only on rank. So both readings give the same result.
   combined with spam, or a miner tuning its target to M_S) may be cheaper than the numbers here.
 * **No network, verification, propagation or orphaning costs.** In particular, monerod's P2P layer carries at most
   100 MB per message (`LEVIN_DEFAULT_MAX_PACKET_SIZE`), so the 50–100 MB sizes in Q1 are beyond what nodes relay
-  today.
+  today. Verification isn't free either: on stressnet, a 2007 four-core machine took 38–66 CPU-ms per input (±25%
+  between monerod builds) and 74–76 s of wall time for a full 10 MB block of 128-input transactions, against a
+  120 s block time. A 100 MB block would take that machine over 12 minutes.
 * **The pool is modelled at block granularity.** Pruning follows monerod's order: lowest fee level first, then
   the newest. Real pools also order transactions that arrived within the same 2 minutes by receive time; here
   those are taken smaller first and pruned larger first.
-* **Equal transaction weight within a class; fees evaluated at inclusion.** This matters little in these runs.
-  M_L can't change within a week, so a surge's transactions pay the levels in force when they were sent, and spam
-  is mined in the block it is sent in.
+* **Equal transaction weight within a class; fees evaluated at inclusion, not at sending.** monerod fixes a fee
+  when the transaction is sent. For v17's levels this changes nothing measurable: f_L moves by at most 1.6% over
+  a 3-day pool life. v16's top level ("Fh") falls as the short-term median rises, so the v16 cost of spam at the
+  top level (104,627 XMR to double M_L) is understated, by up to 3× on the part of the backlog mined after the
+  ramp. No other number uses that level.
+* **The malicious miner pads with zero-fee filler** rather than mining the backlog. With an empty pool, as in
+  Q3d and Q3e, this is exact. With a backlog it overstates the miner's cost, since fees would offset the penalty.
 * **Reward fixed at 0.6 XMR.** Penalties and fees in XMR scale with it.
+* **Spam budgets** (`budget_xmr`) are checked on mined spend, so a budgeted spammer can overshoot by what is still
+  pending. No scenario in this study sets a budget.
+* **Attacker cost counts only spam that was mined.** Spam dropped by the pool or expired costs nothing, as in
+  monerod. In every Q3 run that figure is zero.
+* **Q6's "time to double M_L" counts from block 0,** 1,000 blocks before the campaign starts (1.4 days on
+  100k–400k). Q3's times count from the campaign start.
 * **Simple starting state.** Except for Q7b, every run starts from windows filled with Z_M, which matches
   mainnet's current M_L but not its short-term window. Demand starts instantly at its level.
 * **Q6** uses one seed per rule set (576 sets) and first-order shares. Interactions are visible in the sums but
   not decomposed.
-* **The transitional rule's exact computation** is not spelled out in the spec. Two readings were tested.
-* **Stressnet's sizes aren't mainnet's.** It was used only to confirm transaction weights and the clamp, not as
-  a source of block-size dynamics, because of its 10 MB zone.
+* **The transitional rule's exact computation** is not spelled out in the spec. Two readings were tested: scaling
+  the stored long-term weights, and re-clamping the scaled block weights around the at-fork M_L. A third, re-running
+  the rolling long-term computation over the scaled pre-fork weights block by block, was not; with M_L at the
+  floor for the whole pre-fork window, as on mainnet, it coincides with the second.
+* **Stressnet's sizes and speeds aren't mainnet's.** Its zone is 10 MB and its long-term window 10,080 blocks
+  (flag 8). It was used only to confirm transaction weights, the 5/6 clamp and the slight overshoot of M_N, none
+  of which depend on the window; not as a source of block-size dynamics.
+* **Chain growth is counted in weight units.** On stressnet, FCMP++ transactions serialise to about 0.82–0.84
+  bytes per unit of weight, so the GB figures in Q1 and Q3 overstate disk growth by roughly 20%.
 
 ## What changed from the first version
 
@@ -637,6 +686,25 @@ and the median depends only on rank. So both readings give the same result.
   (277 vs 274 blocks for a one-day 5× surge).
 * **Q3** adds the cost of minimum-fee spam to users (fees about 4×). It also qualifies "attacks cost the same or
   more on v17": backlog spam is cheaper on v17.
+
+Third revision, after a second review:
+
+* **The Q3 headline was wrong.** It said growing the chain by attack was "dearer and slower" on v17; the table
+  under it shows 1 TB arriving in 237 days on v17 against 463 on v16. Only raising M_L is slower (the clamp), and
+  the per-byte price of filler is the same on both. The ×1.33 and ×0.58 in Q3a were presented as rule effects;
+  they are the ratio of free space at 38 tx/block and the ratio of bytes added.
+* **The v16 control with 9,093-byte transactions was congested before its surge** (38 × 9,093 = 345 kB in a
+  300 kB zone). A second control at 18 tx/block, the same 55% of the zone as v17, replaces it in the comparison:
+  v17 queues less at 5× (274 vs 387 blocks) but loses more at 10× and above, because the pool is the same 648 MB
+  on both chains.
+* **Q3's days now count from the start of the campaign,** not from block 0 (1.4 days less).
+* **Figures:** the bloat panel's axis was broken by a headroom adjustment made before the log scale was set; the
+  Q2 example hid v17 under the identical 50×-cap run, now drawn dashed on top; coinciding series are labelled.
+* **Limitations** now list the three modelling choices found by a code review against monerod's source
+  (inclusion-time fees, zero-fee padding, budget on mined spend) with their direction; the consensus and fee
+  functions themselves matched monerod and `fcmp++-stage` line for line.
+* **Stressnet's shorter long-term window** (10,080 blocks) is recorded alongside its 10 MB zone; no number in the
+  study depended on it. Node addresses were removed from the text.
 * **The malicious miner below 50%:** "cannot move M_L at all" holds only when honest demand is well below Z_M
   (new scenario `q3e_miner_busy`).
 * **Q7:** the spec's text covers the short-term median too, so the early difference is what the spec asks for.
@@ -656,7 +724,7 @@ python3 -m venv ~/studyvenv && ~/studyvenv/bin/pip install matplotlib numpy pand
 PYTHON=~/studyvenv/bin/python study/run_all.sh                      # tests, all scenarios, figures, tables (~2.5 min on 12 cores)
 MONERO_RPC=http://127.0.0.1:18081 PYTHON=... study/run_all.sh        # also refreshes data/mainnet_weights.csv.gz
 cd study && ./target/release/study scenarios/q2_surge.json --out results   # one scenario
-MONERO_RPC=http://192.168.1.22:28089 python3 scripts/fetch_chain.py data/stressnet_weights.csv.gz 120000
+MONERO_RPC=http://<stressnet-node>:<rpc-port> python3 scripts/fetch_chain.py data/stressnet_weights.csv.gz 120000
 ```
 
 `run_all.sh` needs `cargo` on the PATH.

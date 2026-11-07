@@ -387,7 +387,7 @@ def q2():
 
     fig, axes = plt.subplots(1, 3, figsize=(11, 3.2))
     # The 8x and 50x caps give identical runs for a one-day surge, so v17_sf50 is drawn dashed on top of v17.
-    for r, ls, lab in [("v16", "-", "v16"), ("v17", "-", "v17"), ("v17_sf50", "--", "v17 with 50× cap (identical to v17)")]:
+    for r, ls, lab in [("v16", "-", "v16"), ("v17", "-", "v17"), ("v17_sf50", "--", "v17_sf50 (= v17)")]:
         x = d[(d.rules == r) & (d.fee == "auto") & (d["demand.surge_blocks"] == 720) & (d["demand.surge_mult"] == 20) & (d.seed_index == 0)].iloc[0]
         s = series("q2_surge", int(x.run_id))
         s = s[(s.block >= 4000) & (s.block <= 9000)]
@@ -400,7 +400,7 @@ def q2():
         ax.axvspan(0, 1, color=GRID, alpha=0.6, lw=0)
         ax.set_title(ttl, loc="left")
         ax.set_xlabel("days since surge start")
-    axes[0].legend(fontsize=8, loc="upper right")
+    axes[0].legend(fontsize=8, loc="center right")
     fig.suptitle("Q2: a 20× surge lasting one day (shaded), auto priority, first seed", x=0.01, y=1.03, ha="left")
     savefig(fig, "q2_surge_example.png")
 
@@ -454,8 +454,9 @@ def q3():
     b["rules"], b["strategy"] = b.c0, b.c1
     rows = []
     for (r, s), gg in b.groupby(["rules", "strategy"]):
-        rows.append({"rules": r, "strategy": s, "M_L 2× (days)": days(gg.t_m_l_2x.mean()), "XMR to 2×": gg.spam_xmr_at_m_l_2x.mean(),
-                     "M_L 4× (days)": days(gg.t_m_l_4x.mean()), "XMR to 4×": gg.spam_xmr_at_m_l_4x.mean(),
+        # Days are counted from the start of the campaign (win_t_*), not from block 0.
+        rows.append({"rules": r, "strategy": s, "M_L 2× (days)": days(gg.win_t_m_l_2x.mean()), "XMR to 2×": gg.spam_xmr_at_m_l_2x.mean(),
+                     "M_L 4× (days)": days(gg.win_t_m_l_4x.mean()), "XMR to 4×": gg.spam_xmr_at_m_l_4x.mean(),
                      "seeds reaching 2×": int(gg.t_m_l_2x.notna().sum()), "M_L after 2 yr (MB)": gg.win_end_m_l.mean() / 1e6,
                      "spent 2 yr (XMR)": gg.spam_spent_in_window_xmr.mean(), "spam added 2 yr (GB)": gg.spam_bytes.mean() / 1e9,
                      "XMR/GB": gg.spam_xmr_per_gb.mean(), "M_L 12 mo after (MB)": gg.win_plus12mo_m_l.mean() / 1e6})
@@ -986,7 +987,7 @@ def chains():
         matches = sorted({(w - c, fcmp[w - c]) for w in top for c in coinbase if (w - c) in fcmp})
         out.append(f"\n### Stressnet (testnet with the FCMP++ fork, hard fork version 18 from height 3,103,520), heights {f.height.min():,}–{f.height.max():,}\n")
         out.append(f"- most common long-term weight of post-fork blocks: {f.long_term_weight.mode().iloc[0]:,} (10,000,000 × 5/6 = {10_000_000*5//6:,}): "
-                   "stressnet runs with a 10 MB penalty-free zone, so its absolute sizes are not the mainnet parameters")
+                   "stressnet runs with a 10 MB penalty-free zone, so its absolute sizes are not the mainnet parameters, and its long-term window is 10,080 blocks rather than 100,000, so its medians move about 10× faster")
         out.append(f"- most common weights of one-transaction blocks: {', '.join(f'{k:,}' for k in top)}; minus a coinbase of 107, 237 or 328 bytes, "
                    f"these give {', '.join(f'{w:,} ({n})' for w, n in matches) or 'no FCMP++ reference weight'}")
         over = f[f.block_weight > 10_000_000]

@@ -60,6 +60,7 @@
 | Q1 | Q1b v17 auto 400%/yr: p99 wait, dropped share | 7.0 / 0.475 |
 | Q2 | v16 1-day 5×: mean wait / mined / mined ≤1 day | 131 / 1.000 / 0.999 |
 | Q2 | v16_9093 1-day 5×: mean wait / mined / mined ≤1 day | 627 / 0.779 / 0.400 |
+| Q2 | v16_9093_lo 1-day 5×: mean wait / mined / mined ≤1 day | 387 / 1.000 / 0.999 |
 | Q2 | v17 1-day 5×: mean wait / mined / mined ≤1 day | 274 / 1.000 / 0.999 |
 | Q2 | v17_sf50 1-day 5×: mean wait / mined / mined ≤1 day | 274 / 1.000 / 0.999 |
 | Q2 | v17_mix 1-day 5×: mean wait / mined / mined ≤1 day | 277 / 1.000 / 0.999 |
@@ -98,9 +99,9 @@
 | Q3 | v17 keep blocks at M_N (fill_to_L0, 7 d): XMR/day; users' extra XMR/day; user fee/tx before→during | 3.94; 14.14; 1.82e-04→7.00e-04 |
 | Q3 | v17 topup_L0 30 d: XMR total, XMR/day, peak M_N MB | 1,823, 60.8, 5 |
 | Q3 | v17 topup_auto 30 d: XMR total, XMR/day, peak M_N MB | 7,922, 264.1, 5 |
-| Q3 | v16 clamp_L0: XMR to 2× M_L (days); XMR to 4× | 687 (142 d); 866 |
+| Q3 | v16 clamp_L0: XMR to 2× M_L (days); XMR to 4× | 687 (140 d); 866 |
 | Q3 | v16 clamp_top: XMR to 2× M_L | 104,627 |
-| Q3 | v17 clamp_L0: XMR to 2× M_L (days); XMR to 4× | 1,440 (281 d); 2,358 |
+| Q3 | v17 clamp_L0: XMR to 2× M_L (days); XMR to 4× | 1,440 (279 d); 2,358 |
 | Q3 | v17 clamp_top: XMR to 2× M_L | 192,753 |
 | Q3 | v16 add 10 GB: cheapest XMR (strategy, days) | 201 (mn_L0, 69 d) |
 | Q3 | v16 add 100 GB: cheapest XMR (strategy, days) | 793 (clamp_L0, 185 d) |
