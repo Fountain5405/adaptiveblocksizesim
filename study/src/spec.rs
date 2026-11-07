@@ -264,7 +264,7 @@ pub struct Fork {
     pub params: Params,
     /// Rescale pre-fork weights by new Z_M / old Z_M (the spec's transitional rule).
     pub rescale: bool,
-    /// How the spec's transitional rule treats pre-fork long-term weights: "stored" multiplies the stored long-term weights; "reclamped" recomputes them from the scaled block weights with the new rules' clamp. Short-term block weights are scaled in both.
+    /// How the spec's transitional rule treats pre-fork long-term weights: "stored" multiplies the stored long-term weights; "reclamped" recomputes them from the scaled block weights with the new rules' clamp; "rolling" re-runs the long-term computation over the scaled block weights block by block under the new rules. Short-term block weights are scaled in both.
     pub rescale_mode: String,
     /// Transaction mix after the fork (default: unchanged).
     pub tx_after: Vec<TxClass>,

@@ -91,6 +91,12 @@ pub enum RescaleMode {
     /// Recompute them from the scaled block weights with the new rules' clamp, taken around the
     /// pre-fork long-term median scaled the same way (and floored at the new Z_M).
     Reclamped,
+    /// Re-run the long-term computation over the scaled pre-fork block weights block by block
+    /// under the new rules, as if the scaled weights had been the chain's history: each block's
+    /// long-term weight is clamped around the median of the recomputed window before it, floored
+    /// at the new Z_M. The blocks before the stored window are unknown; the `Stored` reading of
+    /// the window stands in for them.
+    Rolling,
 }
 
 impl Queue {
@@ -609,6 +615,27 @@ impl Sim {
                 let upper = ml * new_c.lt_growth_num / new_c.lt_growth_den;
                 self.raw_long.iter().map(|&w| (w * num / den).max(lower).min(upper)).collect()
             }
+            Some((num, den)) if mode == RescaleMode::Rolling => {
+                let seed: Vec<i64> = self.long_term.values.iter().map(|&w| scale(w)).collect();
+                debug_assert_eq!(seed.len(), self.raw_long.len());
+                // The window before block i: the seed values for the blocks not yet recomputed
+                // (standing in for the unknown history before the stored window), then the
+                // recomputed weights of the blocks before i.
+                let mut med = SlidingOrderStat::median_of(seed.len().max(2), seed[0]);
+                for &w in &seed {
+                    med.push(w);
+                }
+                let mut out = Vec::with_capacity(seed.len());
+                for &raw in &self.raw_long {
+                    let ml = med.median().max(new_c.z_m);
+                    let lower = ml * new_c.lt_growth_den / new_c.lt_growth_num;
+                    let upper = ml * new_c.lt_growth_num / new_c.lt_growth_den;
+                    let w = (raw * num / den).max(lower).min(upper);
+                    out.push(w);
+                    med.push(w);
+                }
+                out
+            }
             _ => self.long_term.values.iter().map(|&w| scale(w)).collect(),
         };
         let st: Vec<i64> = self.short_term.values.iter().map(|&w| scale(w)).collect();
@@ -873,6 +900,48 @@ mod tests {
         assert_eq!(*w.iter().min().unwrap(), 520_833);
         // the short-term window holds block weights, scaled the same way in both modes
         assert_eq!(stored.short_term.median(), reclamped.short_term.median());
+
+        // With M_L at the floor throughout, the rolling reading recomputes every weight around the
+        // same floor, so it coincides with the re-clamped one.
+        let mut rolling = Sim::with_history(c, &[2500], &lt, &bw);
+        rolling.switch_rules(c17, Some((625_000, 300_000)), RescaleMode::Rolling);
+        let wr: Vec<i64> = rolling.long_term_window().collect();
+        assert_eq!(wr, w);
+        assert_eq!(stored.short_term.median(), rolling.short_term.median());
+    }
+
+    /// Above the floor the readings differ: the rolling one lets the recomputed weights move the
+    /// median they are clamped around, the re-clamped one uses the at-fork median for all of them.
+    #[test]
+    fn rolling_reading_differs_from_reclamped_above_the_floor() {
+        let mut c = SimulationConfig::preset(RULES_V16);
+        c.long_window = 1000;
+        let lt: Vec<i64> = vec![1_000_000; 1000];
+        let bw: Vec<i64> = (0..1000).map(|i| if i % 2 == 0 { 1_700_000 } else { 600_000 }).collect();
+        let mut c17 = SimulationConfig::preset(RULES_V17);
+        c17.long_window = 1000;
+
+        // a steady chain stays steady under every reading
+        let flat: Vec<i64> = vec![1_000_000; 1000];
+        for mode in [RescaleMode::Stored, RescaleMode::Reclamped, RescaleMode::Rolling] {
+            let mut s = Sim::with_history(c, &[2500], &lt, &flat);
+            s.switch_rules(c17, Some((625_000, 300_000)), mode);
+            assert!(s.long_term_window().all(|w| w == 1_000_000 * 625_000 / 300_000), "{mode:?}");
+        }
+
+        let mut reclamped = Sim::with_history(c, &[2500], &lt, &bw);
+        reclamped.switch_rules(c17, Some((625_000, 300_000)), RescaleMode::Reclamped);
+        let wc: Vec<i64> = reclamped.long_term_window().collect();
+        // at-fork M_L 1M × 625/300 = 2,083,333: bounds [1,736,110, 2,499,999]
+        assert_eq!(wc[0], 2_083_333 * 6 / 5);
+        assert_eq!(wc[1], 2_083_333 * 5 / 6);
+
+        let mut rolling = Sim::with_history(c, &[2500], &lt, &bw);
+        rolling.switch_rules(c17, Some((625_000, 300_000)), RescaleMode::Rolling);
+        let wr: Vec<i64> = rolling.long_term_window().collect();
+        assert_eq!(wr[0], wc[0]); // first block: same median as the re-clamped reading
+        assert_ne!(wr, wc); // later ones are clamped around a moved median
+        assert_ne!(rolling.long_term.median(), reclamped.long_term.median());
     }
 
     /// Two classes in a growing backlog at one fee level (demand above the 8× cap, so it can't

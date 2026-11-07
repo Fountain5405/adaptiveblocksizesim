@@ -829,7 +829,7 @@ def q6():
 # ----------------------------------------------------------------------------------------
 # Q7 fork transition
 # ----------------------------------------------------------------------------------------
-VARIANTS = ["ref", "spec", "spec_reclamped"]
+VARIANTS = ["ref", "spec", "spec_reclamped", "spec_rolling"]
 
 
 def q7():
@@ -843,15 +843,15 @@ def q7():
             v = {k: g[(g.event == ev) & (g.variant == k)] for k in VARIANTS}
             if any(len(x) == 0 for x in v.values()):
                 continue
-            a, b, c = (v[k].iloc[0] for k in VARIANTS)
+            a, b, c, r = (v[k].iloc[0] for k in VARIANTS)
             rows.append({"pre-fork / demand": pre, "miners": w, "when": ev.replace("fork_", ""), "M_L ref (kB)": a.m_l / 1e3, "M_L spec (kB)": b.m_l / 1e3,
-                         "M_L spec re-clamped (kB)": c.m_l / 1e3, "max weight ref (MB)": a.max_weight / 1e6, "max weight spec (MB)": b.max_weight / 1e6,
+                         "M_L spec re-clamped (kB)": c.m_l / 1e3, "M_L spec rolling (kB)": r.m_l / 1e3, "max weight ref (MB)": a.max_weight / 1e6, "max weight spec (MB)": b.max_weight / 1e6,
                          "f_L ref": a.fee_low, "f_L spec": b.fee_low, "f_L ref ÷ spec": a.fee_low / b.fee_low})
     t = pd.DataFrame(rows)
-    fmt = {"M_L ref (kB)": "{:,.0f}", "M_L spec (kB)": "{:,.0f}", "M_L spec re-clamped (kB)": "{:,.0f}", "max weight ref (MB)": "{:.3g}", "max weight spec (MB)": "{:.3g}",
+    fmt = {"M_L ref (kB)": "{:,.0f}", "M_L spec (kB)": "{:,.0f}", "M_L spec re-clamped (kB)": "{:,.0f}", "M_L spec rolling (kB)": "{:,.0f}", "max weight ref (MB)": "{:.3g}", "max weight spec (MB)": "{:.3g}",
            "f_L ref": "{:.2e}", "f_L spec": "{:.2e}", "f_L ref ÷ spec": "{:.2f}"}
     out.append("### Q7: v16 → v17 at block 2,000; reference code (no rescaling, `ref`) vs the spec's transitional rule (pre-fork block weights × 625/300 in every median spanning the fork)\n")
-    out.append("`spec` multiplies the stored pre-fork long-term weights; `spec re-clamped` recomputes them from the scaled block weights with v17's clamp around the scaled pre-fork M_L. "
+    out.append("`spec` multiplies the stored pre-fork long-term weights; `spec re-clamped` recomputes them from the scaled block weights with v17's clamp around the scaled pre-fork M_L; `spec rolling` re-runs the long-term computation over the scaled block weights block by block under v17's rules. "
                "Both scale the short-term window's block weights. Pre-fork windows filled with M_L = X (v16, 2,500-byte transactions). After the fork transactions weigh 9,093 bytes. "
                "`same_txs` keeps the transaction count (X/2,500 per block, so bytes ×3.6); `base38` drops to 38 tx/block; `fill_after` = rational miners with demand above capacity after the fork.\n")
     out.append(md(t[t.miners == "auto"].drop(columns="miners"), fmt))
@@ -859,15 +859,15 @@ def q7():
     out.append(md(t[(t.miners == "fill_after") & t["pre-fork / demand"].str.endswith("base38")].drop(columns="miners"), fmt))
     for X in ["300k", "450k", "600k", "1000k", "2000k"]:
         x = t[(t["pre-fork / demand"] == f"ML{X}_base38") & (t.miners == "auto") & (t.when == "first_block")].iloc[0]
-        key("Q7", f"pre-fork M_L {X}: M_L ref / spec / re-clamped (kB); f_L ref ÷ spec at the first post-fork block",
-            f"{x['M_L ref (kB)']:,.0f} / {x['M_L spec (kB)']:,.0f} / {x['M_L spec re-clamped (kB)']:,.0f}; {x['f_L ref ÷ spec']:.2f}")
+        key("Q7", f"pre-fork M_L {X}: M_L ref / spec / re-clamped / rolling (kB); f_L ref ÷ spec at the first post-fork block",
+            f"{x['M_L ref (kB)']:,.0f} / {x['M_L spec (kB)']:,.0f} / {x['M_L spec re-clamped (kB)']:,.0f} / {x['M_L spec rolling (kB)']:,.0f}; {x['f_L ref ÷ spec']:.2f}")
 
     rows = []
     for (pre, w), g in d.groupby(["pre", "wallets"], sort=False):
         a = g[g.variant == "ref"].iloc[0]
         sa = series("q7_fork", int(a.run_id))
         sa = sa[sa.block >= 2000]
-        for var in ["spec", "spec_reclamped"]:
+        for var in ["spec", "spec_reclamped", "spec_rolling"]:
             b = g[g.variant == var].iloc[0]
             sb = series("q7_fork", int(b.run_id))
             sb = sb[sb.block >= 2000]
@@ -899,7 +899,7 @@ def q7():
     rows = []
     for (c, ev), g in piv.groupby(level=["demand", "event"]):
         row = {"post-fork demand": c, "when": ev.replace("fork_", "")}
-        for var in ["spec", "spec_reclamped"]:
+        for var in ["spec", "spec_reclamped", "spec_rolling"]:
             for col, nm in [("m_l", "M_L"), ("m_n", "M_N"), ("fee_low", "f_L")]:
                 ratio = g[(col, var)] / g[(col, "ref")]
                 row[f"{nm} {var} ÷ ref (min–max)"] = f"{ratio.min():.4f}–{ratio.max():.4f}"
@@ -916,7 +916,7 @@ def q7():
         for si in sorted(b.seed_index.unique())[:2]:
             a = b[(b.demand == c) & (b.variant == "ref") & (b.seed_index == si)].iloc[0]
             sa = series("q7b_fork_mainnet", int(a.run_id))
-            for var in ["spec", "spec_reclamped"]:
+            for var in ["spec", "spec_reclamped", "spec_rolling"]:
                 bb = b[(b.demand == c) & (b.variant == var) & (b.seed_index == si)].iloc[0]
                 sb = series("q7b_fork_mainnet", int(bb.run_id))
                 dif = (sa.m_l.values != sb.m_l.values) | (sa.max_weight.values != sb.max_weight.values)
@@ -928,7 +928,7 @@ def q7():
     out.append(md(fd, {"series differ (share of samples)": "{:.3f}", "max M_L ratio ÷ ref": "{:.4f}"}))
     write("q7.md", "\n".join(out))
     for c in ["base38", "x3", "fill_after"]:
-        for var in ["spec", "spec_reclamped"]:
+        for var in ["spec", "spec_reclamped", "spec_rolling"]:
             x = fd[(fd["post-fork demand"] == c) & (fd.variant == var)]
             key("Q7", f"mainnet {c}, {var}: first difference (blocks after fork, per seed); max M_L ratio",
                 f"{', '.join(str(v) for v in x['first difference (blocks after fork)'])}; {x['max M_L ratio ÷ ref'].max():.4f}")

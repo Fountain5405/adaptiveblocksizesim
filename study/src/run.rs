@@ -420,6 +420,7 @@ pub fn run(spec_in: &RunSpec, run_id: usize, seed: u64, series_every: u32, serie
                 let mode = match f.rescale_mode.as_str() {
                     "stored" => RescaleMode::Stored,
                     "reclamped" => RescaleMode::Reclamped,
+                    "rolling" => RescaleMode::Rolling,
                     o => return Err(format!("unknown fork.rescale_mode {o}")),
                 };
                 sim.switch_rules(nc, rescale, mode);

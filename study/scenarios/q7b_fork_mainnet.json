@@ -66,6 +66,13 @@
      "rescale": true,
      "rescale_mode": "reclamped"
     }
+   },
+   {
+    "label": "spec_rolling",
+    "fork": {
+     "rescale": true,
+     "rescale_mode": "rolling"
+    }
    }
   ]
  ],
