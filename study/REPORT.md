@@ -221,6 +221,14 @@ wallet's M_LW), and notes that this is "only necessary if MLOld > ZMOld".
    about 10× faster than this report's v17 numbers, in a zone 16× larger. The surge factor is 8 on both. Stressnet's
    transaction weights match `get_fcmp_pp_transaction_weight_v1` exactly. (Parameters read from
    `seraphis-migration/monero` at d80596ad1, branch `fcmp++-beta-stressnet-v3`.)
+9. **For ArticMine (document arithmetic, no code change needed).** MoneroScaling2026-03 §2b "Wallet Fees (New)"
+   defines the maximum wallet fee as f_X = 2·R_Base/M_FW = 2·(M_FW/T_R)·f_L and then states that for
+   M_FW = Z_M = 625,000 bytes, f_X = 125 f_L. With the document's own T_R = 12,500 the formula gives
+   2 × 625,000 / 12,500 = 100 f_L; 125 f_L would need T_R = 10,000. The `fcmp++-stage` code
+   (get_dynamic_base_fee_estimate_2026_scaling) implements the formula, so f_X = 100 f_L at the floor, and the
+   simulator does the same (`wasm-sim/src/lib_core.rs`, test `v17_fee_levels_follow_spec_ratios`). The document's
+   numeric example should read 100 f_L. Every f_X figure in this report uses the formula value. Verified against
+   the document text on 2026-11-08.
 
 ## Methods
 
@@ -718,6 +726,7 @@ Third revision, after a second review:
   dropped.
 * **Smaller corrections** to numbers and wording: the 10×-surge cap comparison, the Q5 overshoot range, the
   users-pay-more fee range, and Q4's M_N recovery.
+* Flag 9 added: the 2026-03 document's example "f_X = 125 f_L" disagrees with its own formula, which gives 100 f_L with T_R = 12,500; the code and the simulator use 100 f_L.
 
 ## Reproduce
 
